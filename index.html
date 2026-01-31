@@ -3,79 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>ATchat Vault</title>
-    <link rel="manifest" href="manifest.json">
+    <title>Vault | Private</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
-        :root { --safe-bottom: env(safe-area-inset-bottom); }
-        body { background: #050505; color: #fff; font-family: 'Space Grotesk', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        #chat-box::-webkit-scrollbar { display: none; }
-        .glass-panel { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(30px); border-top: 1px solid #222; padding-bottom: calc(15px + var(--safe-bottom)); }
+        :root { --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom); }
+        body { background: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
         
-        /* Mesmerizing FX */
-        .fx-element {
-            position: absolute; font-size: 60px; pointer-events: none;
-            animation: floatUp 3s ease-out forwards; z-index: 100; filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
-        }
-        @keyframes floatUp {
-            0% { transform: translateY(0) scale(0.5) rotate(0deg); opacity: 0; }
-            20% { opacity: 1; }
-            100% { transform: translateY(-400px) scale(1.8) rotate(45deg); opacity: 0; }
-        }
+        /* Modern Glass UI */
+        .glass-header { background: rgba(0,0,0,0.7); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); padding-top: calc(1rem + var(--safe-top)); }
+        .glass-input { background: rgba(20,20,20,0.8); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(1rem + var(--safe-bottom)); }
+        
+        /* Message Bubbles */
+        #chat-box::-webkit-scrollbar { display: none; }
+        .bubble { max-width: 85%; padding: 14px 18px; border-radius: 24px; font-size: 15px; line-height: 1.5; letter-spacing: 0.02em; }
+        .bubble-me { background: linear-gradient(135deg, #7c3aed, #db2777); align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.4); }
+        .bubble-them { background: #18181b; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
 
-        .bubble { max-width: 80%; padding: 14px 18px; border-radius: 22px; font-size: 15px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .btn-reset { border: 1px solid #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
-        input::placeholder { color: #4b5563; font-weight: 500; }
+        /* Lock Screen Overlay */
+        #lock-screen { position: absolute; inset: 0; background: #000; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        .fx-element { position: absolute; font-size: 60px; pointer-events: none; animation: floatUp 2.8s ease-out forwards; z-index: 100; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-400px) scale(2); opacity: 0; } }
+
+        /* Danger Pulse */
+        .btn-danger { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); box-shadow: 0 0 15px rgba(239, 68, 68, 0.1); }
     </style>
 </head>
 <body>
 
-    <header class="p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] border-b border-white/5 flex justify-between items-center bg-black/40">
+    <header class="glass-header p-6 flex justify-between items-center relative z-10">
         <div>
-            <h1 class="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">ATchat Vault</h1>
-            <p id="display-user" class="text-[10px] text-violet-500 font-bold uppercase tracking-widest cursor-pointer" onclick="setUsername()"></p>
+            <h1 class="text-xl font-bold tracking-tighter uppercase italic">Vault <span class="text-fuchsia-500">.</span></h1>
+            <p id="display-user" class="text-[9px] text-zinc-500 font-bold tracking-widest uppercase mt-1 cursor-pointer" onclick="setUsername()"></p>
         </div>
         <div class="flex gap-3">
-            <button onclick="wipeData()" class="btn-reset w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center active:scale-90" title="Delete All">
+            <button onclick="wipeData()" class="btn-danger w-10 h-10 rounded-full flex items-center justify-center active:scale-90 transition-all">
                 <svg viewBox="0 0 24 24" class="w-5 h-5 fill-red-500"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
             </button>
-            <button onclick="showMyQR()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+            <button onclick="showMyQR()" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
                 <svg viewBox="0 0 24 24" class="w-5 h-5 fill-white"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm8-12v8h8V3h-8zm6 6h-4V5h4v4z"/></svg>
             </button>
         </div>
     </header>
 
-    <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-5 flex flex-col"></div>
-
-    <div class="glass-panel p-4">
-        <div class="flex gap-2 mb-4">
-            <div class="flex-[1] bg-white/5 p-2 px-4 rounded-xl border border-white/10">
-                <span class="text-[8px] text-violet-400 font-bold uppercase block">To:</span>
-                <input id="peer-id" type="number" oninput="savePeer(this.value)" placeholder="ID" class="w-full text-xs text-white font-bold outline-none bg-transparent">
+    <main class="flex-1 relative overflow-hidden bg-[#050505]">
+        <div id="lock-screen">
+            <div class="w-16 h-16 bg-fuchsia-600/10 rounded-full flex items-center justify-center mb-6 ring-1 ring-fuchsia-500/20">
+                <svg viewBox="0 0 24 24" class="w-8 h-8 fill-fuchsia-500"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </div>
-            <div class="flex-[2] bg-white/5 p-2 px-4 rounded-xl border border-violet-500/40">
-                <span class="text-[8px] text-fuchsia-400 font-bold uppercase block">Secret Key:</span>
-                <input id="secret-key" type="password" oninput="saveKey(this.value)" placeholder="Required for E2EE" class="w-full text-xs text-white font-bold outline-none bg-transparent">
+            <p class="text-[10px] text-zinc-500 uppercase tracking-[0.3em] mb-4">Identity Verified. Access Locked.</p>
+            <input id="unlock-input" type="password" oninput="attemptUnlock(this.value)" placeholder="Enter Secret Key" 
+                   class="bg-transparent text-center text-white text-lg font-bold outline-none border-b border-white/10 pb-2 w-48">
+        </div>
+        
+        <div id="chat-box" class="h-full overflow-y-auto p-5 space-y-6 flex flex-col"></div>
+    </main>
+
+    <div class="glass-input p-4">
+        <div class="flex gap-2 mb-4 bg-white/5 rounded-2xl p-2 border border-white/5">
+            <div class="px-3 border-r border-white/10">
+                <span class="text-[8px] text-zinc-500 block">TO</span>
+                <input id="peer-id" type="number" oninput="savePeer(this.value)" placeholder="ID" class="w-10 bg-transparent text-white font-bold outline-none text-xs">
+            </div>
+            <div class="px-3 flex-1">
+                <span class="text-[8px] text-zinc-500 block">ENCRYPTION ACTIVE</span>
+                <p id="key-indicator" class="text-[10px] text-fuchsia-500 font-bold uppercase tracking-widest">Awaiting Key</p>
             </div>
         </div>
         
         <div class="flex gap-3 items-center">
-            <input id="msg-input" type="text" placeholder="Scrambled message..." class="flex-1 bg-zinc-900/80 rounded-2xl p-4 outline-none border border-white/5 text-white">
-            <button onclick="sendMessage()" class="bg-violet-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all">
-                <svg viewBox="0 0 24 24" class="w-7 h-7 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            <input id="msg-input" type="text" placeholder="Message..." class="flex-1 bg-white/5 rounded-2xl p-4 outline-none border border-white/10 text-white focus:border-fuchsia-500/50 transition-all">
+            <button onclick="sendMessage()" class="bg-white text-black w-14 h-14 rounded-2xl flex items-center justify-center active:scale-95 transition-all">
+                <svg viewBox="0 0 24 24" class="w-7 h-7 fill-black"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
         </div>
     </div>
 
-    <div id="qr-modal" class="hidden fixed inset-0 bg-black/98 z-50 flex flex-col items-center justify-center p-8" onclick="this.classList.add('hidden')">
-        <div class="bg-white p-6 rounded-[40px] mb-8"><div id="qrcode"></div></div>
-        <p id="my-id-display" class="text-violet-400 text-3xl font-bold tracking-widest"></p>
-        <button onclick="copyMyID(event)" class="mt-8 px-10 py-4 bg-violet-600 rounded-2xl font-bold shadow-xl">COPY MY ID</button>
+    <div id="qr-modal" class="hidden fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center p-8" onclick="this.classList.add('hidden')">
+        <div class="bg-white p-6 rounded-[40px] mb-8 ring-[20px] ring-white/5"><div id="qrcode"></div></div>
+        <p id="my-id-display" class="text-white text-5xl font-bold tracking-tighter italic"></p>
+        <button onclick="copyMyID(event)" class="mt-12 px-12 py-4 bg-white text-black rounded-2xl font-bold uppercase text-xs tracking-widest">Copy Identifier</button>
     </div>
 
     <script>
@@ -89,91 +100,119 @@
         firebase.initializeApp(config);
         const db = firebase.database();
 
-        let myID = localStorage.getItem('atchat_id_short') || Math.floor(1000 + Math.random() * 9000).toString();
-        localStorage.setItem('atchat_id_short', myID);
+        let currentKey = ""; // Session-only key
+        let myID = localStorage.getItem('v2_id') || Math.floor(1000 + Math.random() * 9000).toString();
+        localStorage.setItem('v2_id', myID);
 
         function init() {
-            document.getElementById('peer-id').value = localStorage.getItem('permanent_peer') || "";
-            document.getElementById('secret-key').value = localStorage.getItem('e2ee_key') || "";
+            document.getElementById('peer-id').value = localStorage.getItem('v2_peer') || "";
             updateHeader();
-            loadHistory();
 
+            // Real-time listener (Blobs are stored in LocalStorage, never readable)
             db.ref('inbox/' + myID).on('child_added', snap => {
                 const data = snap.val();
-                const hist = JSON.parse(localStorage.getItem('chat_hist_' + myID) || '[]');
-                if(!hist.find(h => h.id === snap.key)) {
-                    const key = localStorage.getItem('e2ee_key');
-                    let decoded = "⚠️ Encryption Mismatch";
-                    try {
-                        const bytes = CryptoJS.AES.decrypt(data.msg, key);
-                        decoded = bytes.toString(CryptoJS.enc.Utf8);
-                        if(!decoded) throw new Error();
-                    } catch(e) { decoded = "🔒 Locked Content"; }
-
-                    renderBubble(decoded, false);
-                    saveMessage(decoded, false, snap.key);
-                    triggerSensoryFX(decoded);
-                }
+                saveBlob(data.msg, false, snap.key);
+                // If unlocked, render immediately
+                if(currentKey) tryDecryptAndRender(data.msg, false);
             });
         }
 
-        function triggerSensoryFX(msg) {
-            const text = msg.toLowerCase();
-            const map = { "kiss": "💋", "spank": "🍑", "moan": "😩", "press": "🫂", "cuties": "🍒", "boobs": "🍒", "hot": "🔥" };
-            for (let word in map) {
-                if (text.includes(word)) {
-                    for(let i=0; i<8; i++) {
-                        const el = document.createElement('div'); el.className = 'fx-element';
-                        el.innerText = map[word]; el.style.left = (Math.random() * 80 + 10) + "%";
-                        el.style.top = "85%"; el.style.animationDelay = (i * 0.15) + "s";
-                        document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
-                    }
-                }
+        // --- LOCK LOGIC ---
+        function attemptUnlock(val) {
+            // We don't save the key in LocalStorage to ensure "Refresh = Lock"
+            currentKey = val;
+            if(val.length >= 1) {
+                document.getElementById('lock-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('lock-screen').style.display = 'none';
+                    document.getElementById('key-indicator').innerText = "AES-256 SECURED";
+                    renderFromHistory();
+                }, 500);
             }
         }
 
+        function renderFromHistory() {
+            document.getElementById('chat-box').innerHTML = "";
+            const hist = JSON.parse(localStorage.getItem('v2_hist_' + myID) || '[]');
+            hist.forEach(m => tryDecryptAndRender(m.blob, m.isMe));
+        }
+
+        function tryDecryptAndRender(blob, isMe) {
+            try {
+                const bytes = CryptoJS.AES.decrypt(blob, currentKey);
+                const text = bytes.toString(CryptoJS.enc.Utf8);
+                if(text) {
+                    renderBubble(text, isMe);
+                    if(!isMe) triggerSensoryFX(text);
+                }
+            } catch(e) { /* silent fail for wrong keys */ }
+        }
+
+        // --- CHAT LOGIC ---
         function sendMessage() {
             const rid = document.getElementById('peer-id').value;
-            const key = document.getElementById('secret-key').value;
             const msg = document.getElementById('msg-input').value.trim();
-            if(!rid || !key || !msg) return;
+            if(!rid || !currentKey || !msg) return;
 
-            const encrypted = CryptoJS.AES.encrypt(msg, key).toString();
+            const encrypted = CryptoJS.AES.encrypt(msg, currentKey).toString();
             db.ref('inbox/' + rid).push({ msg: encrypted, sid: myID });
 
             renderBubble(msg, true);
-            saveMessage(msg, true, Date.now());
+            saveBlob(encrypted, true, Date.now());
             triggerSensoryFX(msg);
             document.getElementById('msg-input').value = "";
         }
 
         function renderBubble(text, isMe) {
             const d = document.createElement('div');
-            d.className = `bubble ${isMe ? 'bg-violet-600 self-end rounded-br-none' : 'bg-zinc-800 self-start rounded-bl-none'}`;
+            d.className = `bubble ${isMe ? 'bubble-me' : 'bubble-them'}`;
             d.innerText = text;
             const box = document.getElementById('chat-box');
             box.appendChild(d);
             box.scrollTop = box.scrollHeight;
         }
 
-        function saveMessage(text, isMe, id) {
-            const hist = JSON.parse(localStorage.getItem('chat_hist_' + myID) || '[]');
-            hist.push({text, isMe, id});
-            localStorage.setItem('chat_hist_' + myID, JSON.stringify(hist));
+        function saveBlob(blob, isMe, id) {
+            const hist = JSON.parse(localStorage.getItem('v2_hist_' + myID) || '[]');
+            if(!hist.find(x => x.id === id)) {
+                hist.push({blob, isMe, id});
+                localStorage.setItem('v2_hist_' + myID, JSON.stringify(hist));
+            }
         }
 
-        function loadHistory() {
-            const hist = JSON.parse(localStorage.getItem('chat_hist_' + myID) || '[]');
-            hist.forEach(m => renderBubble(m.text, m.isMe));
+        function triggerSensoryFX(msg) {
+            const t = msg.toLowerCase();
+            const m = { "kiss":"💋", "spank":"🍑", "moan":"😩", "press":"🫂", "cuties":"🍒", "boobs":"🍒", "hot":"🔥" };
+            for (let k in m) if (t.includes(k)) {
+                for(let i=0; i<8; i++) {
+                    const el = document.createElement('div'); el.className = 'fx-element';
+                    el.innerText = m[k]; el.style.left = (Math.random() * 80 + 10) + "%";
+                    el.style.top = "85%"; el.style.animationDelay = (i * 0.1) + "s";
+                    document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
+                }
+            }
         }
 
-        function saveKey(v) { localStorage.setItem('e2ee_key', v); }
-        function savePeer(v) { localStorage.setItem('permanent_peer', v); }
-        function setUsername() { const name = prompt("Name:"); if(name) { localStorage.setItem('atchat_name', name); updateHeader(); } }
-        function updateHeader() { const name = localStorage.getItem('atchat_name') || "Ghost"; document.getElementById('display-user').innerText = `${name} • ID: ${myID}`; document.getElementById('my-id-display').innerText = myID; }
-        function wipeData() { if(confirm("Wipe all messages?")) { localStorage.clear(); location.reload(); } }
-        function showMyQR() { document.getElementById('qrcode').innerHTML = ""; new QRCode(document.getElementById("qrcode"), { text: myID, width: 220, height: 220 }); document.getElementById('qr-modal').classList.remove('hidden'); }
-        function copyMyID(e) { e.stopPropagation(); navigator.clipboard.writeText(myID); alert("Copied!"); }
+        // --- UTILS ---
+        function savePeer(v) { localStorage.setItem('v2_peer', v); }
+        function setUsername() { const n = prompt("Alias:"); if(n) { localStorage.setItem('v2_name', n); updateHeader(); } }
+        function updateHeader() { 
+            const n = localStorage.getItem('v2_name') || "Ghost"; 
+            document.getElementById('display-user').innerText = `${n} • ID ${myID}`;
+            document.getElementById('my-id-display').innerText = myID;
+        }
+        function wipeData() { 
+            if(confirm("Factory Reset: Wiping everything, including your ID.")) { 
+                localStorage.clear(); 
+                location.reload(); 
+            } 
+        }
+        function showMyQR() {
+            document.getElementById('qrcode').innerHTML = "";
+            new QRCode(document.getElementById("qrcode"), { text: myID, width: 220, height: 220, colorDark: "#000000" });
+            document.getElementById('qr-modal').classList.remove('hidden');
+        }
+        function copyMyID(e) { e.stopPropagation(); navigator.clipboard.writeText(myID); alert("ID Copied"); }
 
         window.onload = init;
     </script>
