@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Ironclad Ghost v12</title>
+    <title>Ironclad Ghost v13</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -13,28 +13,19 @@
         :root { --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom); }
         body { background: #020617; color: #f8fafc; font-family: 'Space Grotesk', sans-serif; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
         .glass-header { background: rgba(2, 6, 23, 0.98); backdrop-filter: blur(20px); border-bottom: 1px solid #1e293b; padding-top: calc(0.5rem + var(--safe-top)); }
-        
         #chat-box::-webkit-scrollbar { display: none; }
-        .bubble { max-width: 80%; padding: 12px 16px; border-radius: 22px; font-size: 15px; position: relative; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.05); transition: opacity 0.3s; }
+        .bubble { max-width: 80%; padding: 12px 16px; border-radius: 22px; font-size: 15px; position: relative; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.05); }
         .bubble-me { background: #4f46e5; align-self: flex-end; border-bottom-right-radius: 4px; }
         .bubble-them { background: #1e293b; align-self: flex-start; border-bottom-left-radius: 4px; }
         
-        /* Static Underline Status */
-        .status-box { display: flex; justify-content: flex-end; margin-top: 4px; height: 4px; }
-        .u-line { width: 14px; height: 2px; border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; display: none; }
+        /* Status Underline */
+        .u-line { width: 14px; height: 2px; border: 1px solid rgba(255,255,255,0.2); margin-top: 4px; display: none; margin-left: auto; }
         .u-line.delivered { display: block; }
         .u-line.seen { display: block; background: #fff; border-color: #fff; box-shadow: 0 0 10px #6366f1; }
 
         .timer-progress { position: absolute; bottom: 0; left: 0; height: 2px; background: #fff; width: 100%; border-radius: 0 0 20px 20px; transition: width linear; }
-        
-        /* Shape Burst Animation */
-        .fx-float { position: fixed; pointer-events: none; z-index: 100; animation: floatAndFade 2.5s ease-out forwards; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
-        @keyframes floatAndFade {
-            0% { transform: scale(0.5); opacity: 0; }
-            20% { opacity: 1; transform: scale(1.1); }
-            100% { transform: translateY(-100px) scale(1.3); opacity: 0; }
-        }
-
+        .fx-float { position: fixed; pointer-events: none; z-index: 100; animation: floatAndFade 2.5s ease-out forwards; }
+        @keyframes floatAndFade { 0% { transform: scale(0.5); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-100px) scale(1.5); opacity: 0; } }
         #lock-screen { position: absolute; inset: 0; background: #020617; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
@@ -45,37 +36,34 @@
             <h1 class="text-xl font-bold tracking-tighter text-indigo-500 uppercase italic">Ironclad</h1>
             <p id="display-id" class="text-[9px] text-zinc-600 font-bold uppercase"></p>
         </div>
-        <button onclick="requestWipe()" class="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 active:scale-90">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-        </button>
+        <button onclick="requestWipe()" class="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 active:scale-90"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
     </header>
 
     <main class="flex-1 relative overflow-hidden bg-[#010409]">
         <div id="lock-screen">
-            <div class="mb-6 p-4 bg-indigo-500/10 rounded-full border border-indigo-500/20"><svg class="w-10 h-10 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></div>
-            <input id="key-input" type="password" placeholder="Cipher Key" class="bg-zinc-900 border border-zinc-800 text-center py-4 px-6 rounded-2xl mb-4 outline-none w-64 focus:border-indigo-500">
-            <button onclick="unlockVault()" class="bg-indigo-600 px-12 py-4 rounded-2xl font-bold uppercase text-xs tracking-widest active:scale-95">Open Vault</button>
+            <input id="key-input" type="password" placeholder="Cipher Key" class="bg-zinc-900 border border-zinc-800 text-center py-4 px-6 rounded-2xl mb-4 outline-none w-64 focus:border-indigo-500 text-white">
+            <button onclick="unlockVault()" class="bg-indigo-600 px-12 py-4 rounded-2xl font-bold uppercase text-xs tracking-widest text-white">Unlock</button>
         </div>
         <div id="chat-box" class="h-full overflow-y-auto p-5 space-y-4 flex flex-col pb-24"></div>
     </main>
 
     <div id="wipe-modal" class="hidden fixed inset-0 bg-black/95 z-[300] flex items-center justify-center p-8 backdrop-blur-xl">
         <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-[40px] w-full text-center">
-            <h2 class="text-xl font-bold text-red-500 mb-6 uppercase tracking-widest italic">Signal Received</h2>
-            <button onclick="performWipe()" class="w-full bg-red-600 py-5 rounded-2xl font-bold uppercase mb-4 active:scale-95 text-white">Purge Everything</button>
+            <h2 class="text-xl font-bold text-red-500 mb-6 uppercase italic">Purge Signal</h2>
+            <button onclick="performWipe()" class="w-full bg-red-600 py-5 rounded-2xl font-bold uppercase mb-4 text-white">Wipe Both Sides</button>
             <button onclick="cancelWipe()" class="text-zinc-600 uppercase text-xs font-bold">Ignore</button>
         </div>
     </div>
 
     <div class="p-4 bg-zinc-950 border-t border-zinc-900">
-        <div class="flex gap-2 mb-3 bg-white/5 rounded-2xl p-2 items-center border border-white/5">
+        <div class="flex gap-2 mb-3 bg-white/5 rounded-2xl p-2 items-center">
             <input id="peer-id" type="number" oninput="savePeer(this.value)" placeholder="Target ID" class="w-24 bg-transparent px-3 py-1 font-bold text-indigo-400 outline-none">
             <div class="flex-1"></div>
-            <button id="sd-btn" onclick="toggleSD()" class="px-4 py-2 rounded-xl bg-zinc-900 text-[9px] font-bold border border-zinc-800 text-zinc-500 transition-all uppercase">Timer Off</button>
+            <button id="sd-btn" onclick="toggleSD()" class="px-4 py-2 rounded-xl bg-zinc-900 text-[9px] font-bold border border-zinc-800 text-zinc-500 uppercase">Timer Off</button>
         </div>
         <div class="flex gap-3">
-            <input id="msg-input" type="text" placeholder="Scramble message..." class="flex-1 bg-zinc-900 rounded-2xl p-4 outline-none border border-zinc-800 focus:border-indigo-500/50">
-            <button onclick="sendMsg()" class="bg-indigo-600 w-14 h-14 rounded-2xl flex items-center justify-center active:scale-90"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+            <input id="msg-input" type="text" placeholder="Scramble..." class="flex-1 bg-zinc-900 rounded-2xl p-4 outline-none border border-zinc-800 text-white">
+            <button onclick="sendMsg()" class="bg-indigo-600 w-14 h-14 rounded-2xl flex items-center justify-center"><svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
         </div>
     </div>
 
@@ -85,47 +73,49 @@
         const db = firebase.database();
 
         let vKey = "", sdOn = false;
-        let myID = localStorage.getItem('v12_id') || Math.floor(10000 + Math.random() * 89999).toString();
-        localStorage.setItem('v12_id', myID);
+        let myID = localStorage.getItem('v13_id') || Math.floor(10000 + Math.random() * 89999).toString();
+        localStorage.setItem('v13_id', myID);
 
         function init() {
             document.getElementById('display-id').innerText = `ID: ${myID}`;
-            document.getElementById('peer-id').value = localStorage.getItem('v12_peer') || "";
+            document.getElementById('peer-id').value = localStorage.getItem('v13_peer') || "";
             
-            db.ref('v12_inbox/' + myID).on('child_added', snap => {
+            // Inbox Listener
+            db.ref('vault_v13/' + myID).on('child_added', snap => {
                 const data = snap.val();
-                db.ref(`v12_status/${data.sid}/${snap.key}`).set('delivered');
-                if(vKey) renderMsg(data.msg, false, snap.key, data.sd, data.ts);
-                else storeLocally(data.msg, false, snap.key, data.sd, data.ts);
+                db.ref(`status_v13/${data.sid}/${snap.key}`).set('delivered');
+                if(vKey) renderMsg(data.msg, false, snap.key, data.sd, data.ts, data.sid);
+                else storeLocally(data.msg, false, snap.key, data.sd, data.ts, data.sid);
             });
 
-            db.ref('v12_purge/' + myID).on('value', snap => {
+            // Wipe Signal Listener
+            db.ref('purge_v13/' + myID).on('value', snap => {
                 if(snap.val() === 'request') document.getElementById('wipe-modal').classList.remove('hidden');
                 if(snap.val() === 'go') wipeAndReset();
             });
         }
 
         function unlockVault() {
-            const val = document.getElementById('key-input').value;
-            if(!val) return; vKey = val;
+            vKey = document.getElementById('key-input').value;
+            if(!vKey) return;
             document.getElementById('lock-screen').style.display = 'none';
-            const h = JSON.parse(localStorage.getItem('v12_hist_' + myID) || '[]');
-            h.forEach(m => renderMsg(m.blob, m.isMe, m.id, m.sd, m.ts));
+            const h = JSON.parse(localStorage.getItem('v13_hist_' + myID) || '[]');
+            h.forEach(m => renderMsg(m.blob, m.isMe, m.id, m.sd, m.ts, m.sid));
         }
 
-        function renderMsg(blob, isMe, mid, sd, ts) {
+        function renderMsg(blob, isMe, mid, sd, ts, sid) {
             try {
                 const b = CryptoJS.AES.decrypt(blob, vKey);
                 const txt = b.toString(CryptoJS.enc.Utf8);
                 if(!txt || document.getElementById('m-'+mid)) return;
 
-                if(!isMe) db.ref(`v12_status/${localStorage.getItem('v12_peer')}/${mid}`).set('seen');
+                if(!isMe) db.ref(`status_v13/${sid}/${mid}`).set('seen');
 
                 const d = document.createElement('div');
                 d.id = 'm-' + mid;
                 d.className = `bubble ${isMe ? 'bubble-me' : 'bubble-them'}`;
                 let tH = sd ? `<div id="bar-${mid}" class="timer-progress"></div>` : '';
-                let sH = isMe ? `<div class="status-box"><div id="u-${mid}" class="u-line"></div></div>` : '';
+                let sH = isMe ? `<div id="u-${mid}" class="u-line"></div>` : '';
                 d.innerHTML = `<div>${txt}</div>${sH}${tH}`;
                 document.getElementById('chat-box').appendChild(d);
                 document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
@@ -140,7 +130,7 @@
                 }
 
                 if(isMe) {
-                    db.ref(`v12_status/${myID}/${mid}`).on('value', s => {
+                    db.ref(`status_v13/${myID}/${mid}`).on('value', s => {
                         const l = document.getElementById(`u-${mid}`);
                         if(!l) return;
                         if(s.val() === 'delivered') l.classList.add('delivered');
@@ -159,9 +149,12 @@
             
             const enc = CryptoJS.AES.encrypt(val, vKey).toString();
             const mid = Date.now();
-            db.ref('v12_inbox/' + rid + '/' + mid).set({ msg: enc, sid: myID, sd: sdOn, ts: mid });
-            renderMsg(enc, true, mid, sdOn, mid);
-            storeLocally(enc, true, mid, sdOn, mid);
+            
+            // Push to Partner's ID
+            db.ref('vault_v13/' + rid + '/' + mid).set({ msg: enc, sid: myID, sd: sdOn, ts: mid });
+            
+            renderMsg(enc, true, mid, sdOn, mid, rid);
+            storeLocally(enc, true, mid, sdOn, mid, rid);
             document.getElementById('msg-input').value = "";
         }
 
@@ -169,8 +162,7 @@
             const t = txt.toLowerCase();
             const centerX = window.innerWidth / 2;
             const centerY = window.innerHeight / 2.5;
-            let coords = [];
-            let emoji = "✨";
+            let coords = []; let emoji = "✨";
 
             if (t.includes("boobs") || t.includes("cuties") || t.includes("ass") || t.includes("butt") || t.includes("spank")) {
                 emoji = t.includes("spank") ? "🍑" : "🍒";
@@ -179,8 +171,7 @@
                     coords.push({ x: centerX - 55 + 45 * Math.cos(a), y: centerY + 45 * Math.sin(a) });
                     coords.push({ x: centerX + 55 + 45 * Math.cos(a), y: centerY + 45 * Math.sin(a) });
                 }
-            } 
-            else if (t.includes("dick") || t.includes("suck")) {
+            } else if (t.includes("dick") || t.includes("suck")) {
                 emoji = "🍆";
                 for (let i = 0; i < 12; i++) coords.push({ x: centerX, y: centerY - (i * 18) });
                 for (let i = 0; i < 8; i++) {
@@ -188,19 +179,12 @@
                     coords.push({ x: centerX - 35 + 25 * Math.cos(a), y: centerY + 10 * Math.sin(a) });
                     coords.push({ x: centerX + 35 + 25 * Math.cos(a), y: centerY + 10 * Math.sin(a) });
                 }
-            }
-            else if (t.includes("kiss") || t.includes("lip") || t.includes("pussy") || t.includes("lick")) {
+            } else if (t.includes("kiss") || t.includes("lip") || t.includes("pussy") || t.includes("lick")) {
                 emoji = t.includes("pussy") ? "🐱" : "💋";
                 for (let i = 0; i <= Math.PI * 2; i += 0.25) {
                     let x = 16 * Math.pow(Math.sin(i), 3);
                     let y = -(13 * Math.cos(i) - 5 * Math.cos(2*i) - 2 * Math.cos(3*i) - Math.cos(4*i));
                     coords.push({ x: centerX + (x * 7), y: centerY + (y * 7) });
-                }
-            } else {
-                const simple = {"hugs":"🫂", "moan":"😩", "bite":"🦷", "sucking":"🍭"};
-                for(let k in simple) if(t.includes(k)) {
-                    emoji = simple[k];
-                    for(let i=0; i<15; i++) coords.push({ x: Math.random()*window.innerWidth, y: Math.random()*centerY + centerY });
                 }
             }
 
@@ -208,8 +192,7 @@
                 setTimeout(() => {
                     const el = document.createElement('div');
                     el.className = 'fx-float';
-                    el.style.left = pos.x + 'px';
-                    el.style.top = pos.y + 'px';
+                    el.style.left = pos.x + 'px'; el.style.top = pos.y + 'px';
                     el.innerText = emoji;
                     document.body.appendChild(el);
                     setTimeout(() => el.remove(), 2500);
@@ -218,19 +201,24 @@
         }
 
         function toggleSD() { sdOn = !sdOn; document.getElementById('sd-btn').innerText = sdOn ? "Timer On" : "Timer Off"; document.getElementById('sd-btn').style.color = sdOn ? "#818cf8" : "#52525b"; }
-        function savePeer(v) { localStorage.setItem('v12_peer', v); }
-        function requestWipe() { const rid = document.getElementById('peer-id').value; if(rid) db.ref('v12_purge/' + rid).set('request'); }
-        function performWipe() { const rid = document.getElementById('peer-id').value; if(rid) db.ref('v12_purge/' + rid).set('go'); wipeAndReset(); }
-        function wipeAndReset() { localStorage.clear(); location.reload(); }
-        function cancelWipe() { db.ref('v12_purge/' + myID).remove(); document.getElementById('wipe-modal').classList.add('hidden'); }
-        function storeLocally(blob, isMe, id, sd, ts) {
-            const h = JSON.parse(localStorage.getItem('v12_hist_' + myID) || '[]');
-            h.push({blob, isMe, id, sd, ts});
-            localStorage.setItem('v12_hist_' + myID, JSON.stringify(h));
+        function savePeer(v) { localStorage.setItem('v13_peer', v); }
+        function requestWipe() { const rid = document.getElementById('peer-id').value; if(rid) db.ref('purge_v13/' + rid).set('request'); }
+        function performWipe() { const rid = document.getElementById('peer-id').value; if(rid) db.ref('purge_v13/' + rid).set('go'); wipeAndReset(); }
+        function wipeAndReset() { 
+            db.ref('vault_v13/' + myID).remove();
+            db.ref('purge_v13/' + myID).remove();
+            localStorage.clear(); 
+            location.reload(); 
+        }
+        function cancelWipe() { db.ref('purge_v13/' + myID).remove(); document.getElementById('wipe-modal').classList.add('hidden'); }
+        function storeLocally(blob, isMe, id, sd, ts, sid) {
+            const h = JSON.parse(localStorage.getItem('v13_hist_' + myID) || '[]');
+            h.push({blob, isMe, id, sd, ts, sid});
+            localStorage.setItem('v13_hist_' + myID, JSON.stringify(h));
         }
         function purgeLocal(id) {
-            const h = JSON.parse(localStorage.getItem('v12_hist_' + myID) || '[]');
-            localStorage.setItem('v12_hist_' + myID, JSON.stringify(h.filter(m => m.id !== id)));
+            const h = JSON.parse(localStorage.getItem('v13_hist_' + myID) || '[]');
+            localStorage.setItem('v13_hist_' + myID, JSON.stringify(h.filter(m => m.id !== id)));
         }
         window.onload = init;
     </script>
