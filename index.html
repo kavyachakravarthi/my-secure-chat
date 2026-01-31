@@ -19,16 +19,19 @@
         
         #chat-box::-webkit-scrollbar { display: none; }
         .bubble { max-width: 85%; padding: 14px 18px; border-radius: 24px; font-size: 15px; position: relative; transition: opacity 0.5s ease; }
-        .bubble-me { background: linear-gradient(135deg, #7c3aed, #db2777); align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 8px 20px -5px rgba(124, 58, 237, 0.4); }
+        .bubble-me { background: linear-gradient(135deg, #7c3aed, #db2777); align-self: flex-end; border-bottom-right-radius: 4px; }
         .bubble-them { background: #1a1a1a; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
 
-        .timer-bar { position: absolute; bottom: 4px; left: 18px; right: 18px; height: 2px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+        /* Timer Bar UI */
+        .timer-bar { position: absolute; bottom: 4px; left: 18px; right: 18px; height: 2px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
         .timer-progress { height: 100%; background: #fff; width: 100%; animation: shrink 30s linear forwards; }
         @keyframes shrink { from { width: 100%; } to { width: 0%; } }
 
         #lock-screen { position: absolute; inset: 0; background: #000; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .fx-element { position: absolute; font-size: 65px; pointer-events: none; animation: floatUp 3s ease-out forwards; z-index: 100; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(0.4); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-450px) scale(2); opacity: 0; } }
+        
+        .toggle-active { background: #7c3aed; color: white; border-color: #8b5cf6; }
     </style>
 </head>
 <body>
@@ -54,18 +57,17 @@
                 <svg viewBox="0 0 24 24" class="w-10 h-10 fill-fuchsia-500"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </div>
             <div class="flex flex-col items-center gap-6 w-full px-10">
-                <input id="unlock-input" type="password" placeholder="Enter Secret Key" class="bg-zinc-900/50 text-center text-white text-lg font-bold outline-none border border-white/10 rounded-2xl py-4 w-full focus:border-fuchsia-500/50 transition-all shadow-inner">
-                <button onclick="manualUnlock()" class="bg-fuchsia-600 w-full py-4 rounded-2xl font-bold text-xs tracking-widest uppercase transition-all active:scale-95 shadow-lg shadow-fuchsia-900/30">Open Vault</button>
+                <input id="unlock-input" type="password" placeholder="Enter Secret Key" class="bg-zinc-900/50 text-center text-white text-lg font-bold outline-none border border-white/10 rounded-2xl py-4 w-full focus:border-fuchsia-500/50">
+                <button onclick="manualUnlock()" class="bg-fuchsia-600 w-full py-4 rounded-2xl font-bold text-xs tracking-widest uppercase active:scale-95">Open Vault</button>
             </div>
         </div>
-        
         <div id="chat-box" class="h-full overflow-y-auto p-5 space-y-6 flex flex-col pb-10"></div>
     </main>
 
     <div id="reset-modal" class="hidden fixed inset-0 bg-black/90 z-[200] flex items-center justify-center p-6 backdrop-blur-md">
         <div class="bg-zinc-900 border border-red-500/30 p-8 rounded-[32px] w-full max-w-sm text-center">
-            <h3 class="text-xl font-bold mb-2">Destruction Request</h3>
-            <p class="text-zinc-400 text-xs mb-8">Your partner is requesting to wipe the vault. This cannot be undone.</p>
+            <h3 class="text-xl font-bold mb-2 uppercase">Destruction</h3>
+            <p class="text-zinc-400 text-[10px] mb-8 uppercase tracking-widest">Partner requested vault wipe</p>
             <div class="flex flex-col gap-3">
                 <button onclick="executeMutualWipe()" class="bg-red-600 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest">Wipe Everything</button>
                 <button onclick="cancelWipe()" class="text-zinc-500 text-[10px] font-bold uppercase mt-2">Decline</button>
@@ -76,17 +78,24 @@
     <div class="glass-input p-4">
         <div class="flex gap-2 mb-4 bg-white/5 rounded-2xl p-2 border border-white/5 items-center">
             <div class="px-3 border-r border-white/10">
-                <span class="text-[8px] text-zinc-500 block uppercase">Partner</span>
+                <span class="text-[8px] text-zinc-500 block uppercase">To</span>
                 <input id="peer-id" type="number" oninput="savePeer(this.value)" placeholder="ID" class="w-10 bg-transparent text-white font-bold outline-none text-xs">
             </div>
+            
             <div class="px-3 flex-1 flex items-center justify-between">
-                <span class="text-[8px] text-fuchsia-500 font-bold uppercase">Self-Destruct: 30s</span>
-                <div id="status-dot" class="w-2 h-2 rounded-full bg-zinc-600"></div>
+                <div class="flex flex-col">
+                    <span class="text-[8px] text-zinc-500 block uppercase">Encryption</span>
+                    <div id="status-dot" class="w-2 h-2 rounded-full bg-zinc-600 mt-1"></div>
+                </div>
+                <button id="destruct-toggle" onclick="toggleDestruct()" class="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-2 rounded-xl transition-all">
+                    <svg viewBox="0 0 24 24" class="w-3 h-3 fill-current"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42C16.07 4.74 14.12 4 12 4c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+                    <span class="text-[10px] font-bold uppercase">Timer</span>
+                </button>
             </div>
         </div>
         <div class="flex gap-3 items-center">
-            <input id="msg-input" type="text" placeholder="Encrypted message..." class="flex-1 bg-white/5 rounded-2xl p-4 outline-none border border-white/10 text-white transition-all">
-            <button onclick="sendMessage()" class="bg-white text-black w-14 h-14 rounded-2xl flex items-center justify-center active:scale-90 transition-all">
+            <input id="msg-input" type="text" placeholder="Message..." class="flex-1 bg-white/5 rounded-2xl p-4 outline-none border border-white/10 text-white">
+            <button onclick="sendMessage()" class="bg-white text-black w-14 h-14 rounded-2xl flex items-center justify-center active:scale-90">
                 <svg viewBox="0 0 24 24" class="w-7 h-7 fill-black"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
         </div>
@@ -110,27 +119,30 @@
         const db = firebase.database();
 
         let currentKey = "";
-        let myID = localStorage.getItem('v4_id') || Math.floor(1000 + Math.random() * 9000).toString();
-        localStorage.setItem('v4_id', myID);
+        let destructEnabled = false;
+        let myID = localStorage.getItem('v5_id') || Math.floor(1000 + Math.random() * 9000).toString();
+        localStorage.setItem('v5_id', myID);
 
         function init() {
-            document.getElementById('peer-id').value = localStorage.getItem('v4_peer') || "";
+            document.getElementById('peer-id').value = localStorage.getItem('v5_peer') || "";
             updateHeader();
-            
-            // Listen for Messages
             db.ref('inbox/' + myID).on('child_added', snap => {
                 const data = snap.val();
-                if(currentKey) tryDecryptAndRender(data.msg, false, snap.key);
-                else saveBlob(data.msg, false, snap.key);
+                if(currentKey) tryDecryptAndRender(data.msg, false, snap.key, data.sd);
+                else saveBlob(data.msg, false, snap.key, data.sd);
             });
-
-            // Listen for Wipe Signals
             db.ref('resets/' + myID).on('value', snap => {
                 if(snap.val() === 'request') document.getElementById('reset-modal').classList.remove('hidden');
                 if(snap.val() === 'go') finishWipe();
             });
-
             document.getElementById('unlock-input').addEventListener("keyup", (e) => { if(e.key === "Enter") manualUnlock(); });
+        }
+
+        function toggleDestruct() {
+            destructEnabled = !destructEnabled;
+            const btn = document.getElementById('destruct-toggle');
+            if(destructEnabled) btn.classList.add('toggle-active');
+            else btn.classList.remove('toggle-active');
         }
 
         function manualUnlock() {
@@ -146,29 +158,25 @@
         }
 
         function renderFromHistory() {
-            const hist = JSON.parse(localStorage.getItem('v4_hist_' + myID) || '[]');
-            hist.forEach(m => tryDecryptAndRender(m.blob, m.isMe, m.id));
+            const hist = JSON.parse(localStorage.getItem('v5_hist_' + myID) || '[]');
+            hist.forEach(m => tryDecryptAndRender(m.blob, m.isMe, m.id, m.sd));
         }
 
-        function tryDecryptAndRender(blob, isMe, msgId) {
+        function tryDecryptAndRender(blob, isMe, msgId, sdActive) {
             try {
                 const bytes = CryptoJS.AES.decrypt(blob, currentKey);
                 const text = bytes.toString(CryptoJS.enc.Utf8);
                 if(text) {
                     const bubbleId = 'msg-' + msgId;
                     if(document.getElementById(bubbleId)) return;
-                    
-                    renderBubble(text, isMe, bubbleId);
+                    renderBubble(text, isMe, bubbleId, sdActive);
                     if(!isMe) triggerSensoryFX(text);
-                    
-                    // Self-Destruct Timer (30s)
-                    setTimeout(() => {
-                        const el = document.getElementById(bubbleId);
-                        if(el) {
-                            el.style.opacity = '0';
-                            setTimeout(() => el.remove(), 500);
-                        }
-                    }, 30000);
+                    if(sdActive) {
+                        setTimeout(() => {
+                            const el = document.getElementById(bubbleId);
+                            if(el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 500); }
+                        }, 30000);
+                    }
                 }
             } catch(e) {}
         }
@@ -177,59 +185,42 @@
             const rid = document.getElementById('peer-id').value;
             const msg = document.getElementById('msg-input').value.trim();
             if(!rid || !currentKey || !msg) return;
-
             const encrypted = CryptoJS.AES.encrypt(msg, currentKey).toString();
             const msgId = Date.now();
-            db.ref('inbox/' + rid).push({ msg: encrypted, sid: myID });
-            
-            tryDecryptAndRender(encrypted, true, msgId);
-            saveBlob(encrypted, true, msgId);
+            db.ref('inbox/' + rid).push({ msg: encrypted, sid: myID, sd: destructEnabled });
+            tryDecryptAndRender(encrypted, true, msgId, destructEnabled);
+            saveBlob(encrypted, true, msgId, destructEnabled);
             document.getElementById('msg-input').value = "";
         }
 
-        function renderBubble(text, isMe, id) {
+        function renderBubble(text, isMe, id, sdActive) {
             const d = document.createElement('div');
-            d.id = id;
-            d.className = `bubble ${isMe ? 'bubble-me' : 'bubble-them'}`;
-            d.innerHTML = `<div>${text}</div><div class="timer-bar"><div class="timer-progress"></div></div>`;
+            d.id = id; d.className = `bubble ${isMe ? 'bubble-me' : 'bubble-them'}`;
+            let timerHtml = sdActive ? `<div class="timer-bar"><div class="timer-progress"></div></div>` : '';
+            d.innerHTML = `<div>${text}</div>${timerHtml}`;
             const box = document.getElementById('chat-box');
-            box.appendChild(d);
-            box.scrollTop = box.scrollHeight;
+            box.appendChild(d); box.scrollTop = box.scrollHeight;
         }
 
-        // Mutual Wipe Logic
         function requestWipe() {
             const rid = document.getElementById('peer-id').value;
-            if(!rid) return alert("Partner ID needed to sync wipe.");
+            if(!rid) return alert("Partner ID needed");
             db.ref('resets/' + rid).set('request');
-            alert("Waiting for partner to accept...");
+            alert("Sent request...");
         }
 
         function executeMutualWipe() {
             const rid = document.getElementById('peer-id').value;
-            db.ref('resets/' + rid).set('go'); // Tell partner to go
+            db.ref('resets/' + rid).set('go');
             db.ref('resets/' + myID).remove();
             finishWipe();
         }
 
-        function finishWipe() {
-            db.ref('inbox/' + myID).remove();
-            localStorage.clear();
-            alert("Vault Destroyed.");
-            location.reload();
-        }
-
-        function cancelWipe() { 
-            db.ref('resets/' + myID).remove();
-            document.getElementById('reset-modal').classList.add('hidden');
-        }
-
-        function saveBlob(blob, isMe, id) {
-            const hist = JSON.parse(localStorage.getItem('v4_hist_' + myID) || '[]');
-            if(!hist.find(x => x.id === id)) {
-                hist.push({blob, isMe, id});
-                localStorage.setItem('v4_hist_' + myID, JSON.stringify(hist));
-            }
+        function finishWipe() { db.ref('inbox/' + myID).remove(); localStorage.clear(); location.reload(); }
+        function cancelWipe() { db.ref('resets/' + myID).remove(); document.getElementById('reset-modal').classList.add('hidden'); }
+        function saveBlob(blob, isMe, id, sd) {
+            const hist = JSON.parse(localStorage.getItem('v5_hist_' + myID) || '[]');
+            if(!hist.find(x => x.id === id)) { hist.push({blob, isMe, id, sd}); localStorage.setItem('v5_hist_' + myID, JSON.stringify(hist)); }
         }
 
         function triggerSensoryFX(msg) {
@@ -245,20 +236,15 @@
             }
         }
 
-        function savePeer(v) { localStorage.setItem('v4_peer', v); }
-        function setUsername() { const n = prompt("Alias:"); if(n) { localStorage.setItem('v4_name', n); updateHeader(); } }
+        function savePeer(v) { localStorage.setItem('v5_peer', v); }
+        function setUsername() { const n = prompt("Alias:"); if(n) { localStorage.setItem('v5_name', n); updateHeader(); } }
         function updateHeader() { 
-            const n = localStorage.getItem('v4_name') || "Ghost"; 
+            const n = localStorage.getItem('v5_name') || "Ghost"; 
             document.getElementById('display-user').innerText = `${n} • ID ${myID}`;
             document.getElementById('my-id-display').innerText = myID;
         }
-        function showMyQR() {
-            document.getElementById('qrcode').innerHTML = "";
-            new QRCode(document.getElementById("qrcode"), { text: myID, width: 220, height: 220 });
-            document.getElementById('qr-modal').classList.remove('hidden');
-        }
+        function showMyQR() { document.getElementById('qrcode').innerHTML = ""; new QRCode(document.getElementById("qrcode"), { text: myID, width: 220, height: 220 }); document.getElementById('qr-modal').classList.remove('hidden'); }
         function copyMyID(e) { e.stopPropagation(); navigator.clipboard.writeText(myID); alert("ID Copied"); }
-
         window.onload = init;
     </script>
 </body>
