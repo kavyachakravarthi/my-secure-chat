@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ATchat Pro</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -14,51 +14,52 @@
     <style>
         :root { --safe-bottom: env(safe-area-inset-bottom); }
         body { background: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        .bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 15px; }
+        .bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         #chat-box::-webkit-scrollbar { display: none; }
-        .glass-panel { background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(20px); border-top: 1px solid #222; padding-bottom: calc(15px + var(--safe-bottom)); }
+        .glass-panel { background: rgba(10, 10, 10, 0.98); backdrop-filter: blur(20px); border-top: 1px solid #222; padding-bottom: calc(15px + var(--safe-bottom)); }
         input { background: transparent; outline: none; }
     </style>
 </head>
 <body>
 
-    <header class="p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] border-b border-white/10 flex justify-between items-center">
+    <header class="p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] border-b border-white/10 flex justify-between items-center bg-black/50">
         <div>
             <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">ATchat</h1>
-            <p id="display-user" class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest"></p>
+            <p id="display-user" class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest cursor-pointer" onclick="setUsername()">Set Username</p>
         </div>
-        <button onclick="showMyQR()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 active:scale-90">
-            <svg viewBox="0 0 24 24" class="w-5 h-5 fill-white"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm8-12v8h8V3h-8zm6 6h-4V5h4v4zm-6 4h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4-2h2v2h-2v-2zm0-4h2v2h-2v-2zm2 2h2v2h-2v-2z"/></svg>
-        </button>
+        <div class="flex gap-3">
+            <button onclick="wipeData()" class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 active:scale-90">
+                <svg viewBox="0 0 24 24" class="w-5 h-5 fill-red-500"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            </button>
+            <button onclick="showMyQR()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 active:scale-90">
+                <svg viewBox="0 0 24 24" class="w-5 h-5 fill-white"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm8-12v8h8V3h-8zm6 6h-4V5h4v4z"/></svg>
+            </button>
+        </div>
     </header>
 
     <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col"></div>
 
     <div class="glass-panel p-4">
         <div class="flex items-center gap-3 mb-4 bg-white/5 p-2 px-4 rounded-xl border border-white/10">
-            <span class="text-[10px] text-blue-400 font-bold uppercase">Chatting With:</span>
+            <span class="text-[10px] text-blue-400 font-bold uppercase">Linked:</span>
             <input id="peer-id" type="text" oninput="savePeer(this.value)" placeholder="Recipient ID" class="flex-1 text-sm text-white font-bold">
-            <button onclick="clearConnection()" class="text-[10px] text-red-500 font-bold">RESET</button>
         </div>
         
         <div class="flex gap-3 items-center">
             <div class="flex-1 bg-zinc-900 rounded-2xl p-4 border border-white/5">
-                <input id="msg-input" type="text" placeholder="Type a message..." class="w-full text-white">
+                <input id="msg-input" type="text" placeholder="Type message..." class="w-full text-white">
             </div>
-            <button onclick="sendMessage()" class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 active:scale-90 transition-transform">
+            <button onclick="sendMessage()" class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-transform">
                 <svg viewBox="0 0 24 24" class="w-7 h-7 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
         </div>
     </div>
 
     <div id="qr-modal" class="hidden fixed inset-0 bg-black/98 z-50 flex flex-col items-center justify-center p-8" onclick="this.classList.add('hidden')">
-        <div class="bg-white p-6 rounded-[32px] mb-8 shadow-2xl"><div id="qrcode"></div></div>
-        <h2 id="my-name-display" class="text-xl font-bold mb-2"></h2>
+        <div class="bg-white p-6 rounded-[32px] mb-8"><div id="qrcode"></div></div>
+        <h2 id="my-name-display" class="text-xl font-bold mb-1"></h2>
         <p id="my-id-display" class="text-zinc-500 text-xs mb-8 font-mono"></p>
-        <div class="w-full max-w-xs space-y-3">
-            <button onclick="setUsername(event)" class="w-full py-4 bg-zinc-800 text-white rounded-2xl font-bold border border-white/10">SET USERNAME</button>
-            <button onclick="copyMyID(event)" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-xl">COPY MY ID</button>
-        </div>
+        <button onclick="copyMyID(event)" class="w-full max-w-xs py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-xl">COPY MY ID</button>
     </div>
 
     <script>
@@ -76,7 +77,6 @@
         let myID = localStorage.getItem('atchat_id') || Math.random().toString(36).substring(2, 9).toUpperCase();
         localStorage.setItem('atchat_id', myID);
 
-        // Register for Background Notifications
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(reg => {
                 messaging.useServiceWorker(reg);
@@ -86,30 +86,25 @@
         }
 
         async function init() {
-            // Restore Permanent Peer
             const saved = localStorage.getItem('permanent_peer');
             if(saved) document.getElementById('peer-id').value = saved;
             
             updateHeader();
 
-            // Load Local History
             const history = JSON.parse(localStorage.getItem('chat_history_' + myID) || '[]');
             history.forEach(m => renderBubble(m.text, m.isMe));
 
-            // Listen for Incoming
             db.ref('inbox/' + myID).on('child_added', snap => {
+                const data = snap.val();
                 if(!history.find(h => h.id === snap.key)) {
-                    const data = snap.val();
                     renderBubble(data.msg, false);
                     saveMessage(data.msg, false, snap.key);
-                    if(data.msg.toLowerCase().includes('kiss')) triggerKiss();
                 }
             });
         }
 
-        function setUsername(e) {
-            e.stopPropagation();
-            const name = prompt("Enter your username:");
+        function setUsername() {
+            const name = prompt("Enter username:");
             if(name) {
                 localStorage.setItem('atchat_username', name);
                 updateHeader();
@@ -117,14 +112,21 @@
         }
 
         function updateHeader() {
-            const name = localStorage.getItem('atchat_username') || "No Name Set";
+            const name = localStorage.getItem('atchat_username') || "Set Username";
             document.getElementById('display-user').innerText = `${name} | ID: ${myID}`;
             document.getElementById('my-name-display').innerText = name;
             document.getElementById('my-id-display').innerText = myID;
         }
 
+        function wipeData() {
+            if(confirm("Delete all messages and clear connection?")) {
+                localStorage.removeItem('chat_history_' + myID);
+                localStorage.removeItem('permanent_peer');
+                location.reload();
+            }
+        }
+
         function savePeer(v) { localStorage.setItem('permanent_peer', v.toUpperCase()); }
-        function clearConnection() { localStorage.removeItem('permanent_peer'); document.getElementById('peer-id').value = ""; }
 
         function sendMessage() {
             const rid = document.getElementById('peer-id').value.trim();
@@ -136,7 +138,6 @@
 
             renderBubble(msg, true);
             saveMessage(msg, true, ref.key);
-            if(msg.toLowerCase().includes('kiss')) triggerKiss();
             document.getElementById('msg-input').value = "";
         }
 
@@ -155,25 +156,13 @@
             localStorage.setItem('chat_history_' + myID, JSON.stringify(hist));
         }
 
-        function triggerKiss() {
-            const k = document.createElement('div');
-            k.className = 'kiss-emoji'; k.innerText = '🥰';
-            k.style.left = Math.random() * 60 + 20 + '%'; k.style.top = '70%';
-            document.body.appendChild(k);
-            setTimeout(() => k.remove(), 2000);
-        }
-
         function showMyQR() {
             document.getElementById('qrcode').innerHTML = "";
             new QRCode(document.getElementById("qrcode"), { text: myID, width: 220, height: 220 });
             document.getElementById('qr-modal').classList.remove('hidden');
         }
 
-        function copyMyID(e) {
-            e.stopPropagation();
-            navigator.clipboard.writeText(myID);
-            alert("ID Copied!");
-        }
+        function copyMyID(e) { e.stopPropagation(); navigator.clipboard.writeText(myID); alert("ID Copied!"); }
 
         window.onload = init;
     </script>
