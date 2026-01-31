@@ -3,79 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Vault v9</title>
+    <title>Ironclad Vault</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom); }
-        body { background: #09090b; color: #fafafa; font-family: 'Space Grotesk', sans-serif; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
-        .glass-header { background: rgba(9,9,11,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid #27272a; padding-top: calc(0.5rem + var(--safe-top)); }
-        .glass-input { background: #09090b; border-top: 1px solid #27272a; padding-bottom: calc(1rem + var(--safe-bottom)); }
-        #chat-box::-webkit-scrollbar { display: none; }
-        .bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 15px; position: relative; margin-bottom: 2px; }
-        .bubble-me { background: #7c3aed; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .bubble-them { background: #27272a; align-self: flex-start; border-bottom-left-radius: 4px; }
+        body { background: #020617; color: #f8fafc; font-family: 'Space Grotesk', sans-serif; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+        .glass-header { background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid #1e293b; padding-top: calc(1rem + var(--safe-top)); }
         
-        /* Static Status Underline */
-        .u-line { width: 12px; height: 2px; border: 1px solid rgba(255,255,255,0.4); margin-top: 4px; transition: 0.3s; display: none; }
-        .u-line.delivered { display: block; }
-        .u-line.seen { display: block; background: #fff; border-color: #fff; }
+        #chat-box::-webkit-scrollbar { display: none; }
+        .bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 15px; position: relative; margin-bottom: 4px; animation: slideIn 0.2s ease-out; }
+        .bubble-me { background: #6366f1; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .bubble-them { background: #1e293b; align-self: flex-start; border-bottom-left-radius: 4px; }
+        
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .timer-progress { position: absolute; bottom: 0; left: 0; height: 2px; background: #fff; width: 100%; transition: width linear; }
-        #lock-screen { position: absolute; inset: 0; background: #09090b; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .fx-element { position: absolute; font-size: 50px; pointer-events: none; animation: floatUp 2.5s ease-out forwards; z-index: 100; }
-        @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-400px) scale(1.5); opacity: 0; } }
+        /* Static Underline Status */
+        .status-line { width: 14px; height: 2px; border: 1px solid rgba(255,255,255,0.3); margin-top: 4px; display: none; }
+        .status-line.delivered { display: block; }
+        .status-line.seen { display: block; background: #fff; border-color: #fff; box-shadow: 0 0 8px #6366f1; }
+
+        /* Timer Bar */
+        .timer-bg { position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: rgba(0,0,0,0.2); overflow: hidden; border-radius: 0 0 20px 20px; }
+        .timer-fill { height: 100%; background: #fff; width: 100%; transition: width linear; }
+
+        .fx-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 100; overflow: hidden; }
+        .explicit-gif { position: absolute; width: 150px; height: 150px; border-radius: 20px; object-fit: cover; animation: popUp 2s forwards; border: 2px solid #6366f1; }
+        @keyframes popUp { 0% { transform: scale(0.5); opacity: 0; } 20% { opacity: 1; transform: scale(1.1); } 100% { transform: translateY(-100px); opacity: 0; } }
+        
+        #lock-screen { position: absolute; inset: 0; background: #020617; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
     <header class="glass-header p-5 flex justify-between items-center">
         <div>
-            <h1 class="text-lg font-bold tracking-tighter uppercase italic text-violet-500">Vault <span class="text-white">Ghost</span></h1>
-            <p id="display-user" class="text-[10px] text-zinc-500 font-bold uppercase cursor-pointer" onclick="setUsername()"></p>
+            <h1 class="text-xl font-bold tracking-widest text-indigo-500 italic">IRONCLAD</h1>
+            <p id="display-id" class="text-[10px] text-zinc-500 font-bold uppercase"></p>
         </div>
-        <button onclick="requestWipe()" class="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center active:scale-90"><svg viewBox="0 0 24 24" class="w-5 h-5 fill-red-500"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+        <button onclick="requestWipe()" class="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 active:scale-90">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+        </button>
     </header>
 
-    <main class="flex-1 relative overflow-hidden">
+    <main class="flex-1 relative overflow-hidden bg-[#010409]">
         <div id="lock-screen">
-            <div class="mb-8 p-4 bg-violet-500/10 rounded-full"><svg viewBox="0 0 24 24" class="w-10 h-10 fill-violet-500"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div>
-            <input id="unlock-input" type="password" placeholder="Key" class="bg-zinc-900 text-center text-white border border-zinc-800 rounded-2xl py-4 w-64 mb-4 outline-none">
-            <button onclick="manualUnlock()" class="bg-violet-600 px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest">Authorize</button>
+            <input id="key-input" type="password" placeholder="Access Key" class="bg-zinc-900 border border-zinc-800 text-center py-4 px-6 rounded-2xl mb-4 outline-none focus:border-indigo-500 transition-all">
+            <button onclick="unlockVault()" class="bg-indigo-600 px-10 py-4 rounded-2xl font-bold uppercase text-xs tracking-widest">Unlock</button>
         </div>
-        <div id="chat-box" class="h-full overflow-y-auto p-5 space-y-4 flex flex-col pb-10"></div>
+        <div class="fx-overlay" id="fx-layer"></div>
+        <div id="chat-box" class="h-full overflow-y-auto p-5 space-y-4 flex flex-col pb-20"></div>
     </main>
 
-    <div id="reset-modal" class="hidden fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-8 backdrop-blur-md">
-        <div class="bg-zinc-950 border border-zinc-800 p-8 rounded-[32px] w-full text-center">
-            <h2 class="text-xl font-bold mb-2 uppercase italic">Wipe Incoming</h2>
-            <p class="text-zinc-500 text-xs mb-8 uppercase tracking-widest">Both sides will be cleared</p>
-            <button onclick="executeMutualWipe()" class="w-full bg-red-600 py-4 rounded-2xl font-bold text-xs uppercase mb-3">Destroy Vault</button>
-            <button onclick="cancelWipe()" class="text-zinc-600 text-[10px] font-bold uppercase">Decline</button>
+    <div id="wipe-modal" class="hidden fixed inset-0 bg-black/95 z-[300] flex items-center justify-center p-8 backdrop-blur-xl">
+        <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-[40px] w-full text-center">
+            <h2 class="text-2xl font-bold text-red-500 mb-6 italic">PURGE SIGNAL</h2>
+            <button onclick="performWipe()" class="w-full bg-red-600 py-5 rounded-2xl font-bold uppercase mb-4">Wipe & Reset ID</button>
+            <button onclick="cancelWipe()" class="text-zinc-500 uppercase text-xs font-bold">Ignore</button>
         </div>
     </div>
 
-    <div class="glass-input p-4">
-        <div class="flex gap-2 mb-4 bg-zinc-900/50 rounded-2xl p-2 border border-zinc-800 items-center">
-            <div class="px-3 border-r border-zinc-800">
-                <span class="text-[8px] text-zinc-500 block uppercase italic">Route</span>
-                <input id="peer-id" type="number" oninput="savePeer(this.value)" placeholder="ID" class="w-10 bg-transparent text-white font-bold outline-none text-xs">
-            </div>
-            <div class="px-3 flex-1 flex items-center justify-between">
-                <div id="status-dot" class="w-2 h-2 rounded-full bg-zinc-800"></div>
-                <button id="destruct-toggle" onclick="toggleDestruct()" class="bg-zinc-800 px-3 py-2 rounded-xl flex items-center gap-2 transition-all">
-                    <div class="w-2 h-2 rounded-full bg-white/20" id="t-dot"></div>
-                    <span class="text-[10px] font-bold uppercase">Timer</span>
-                </button>
-            </div>
+    <div class="p-4 bg-zinc-950 border-t border-zinc-900">
+        <div class="flex gap-2 mb-3 bg-white/5 rounded-2xl p-2 items-center">
+            <input id="peer-id" type="number" placeholder="Partner ID" class="w-24 bg-transparent px-3 py-1 font-bold text-indigo-400 outline-none">
+            <div class="flex-1"></div>
+            <button id="sd-btn" onclick="toggleSD()" class="px-4 py-2 rounded-xl bg-zinc-800 text-[10px] font-bold border border-zinc-700 transition-all">TIMER OFF</button>
         </div>
         <div class="flex gap-3">
-            <input id="msg-input" type="text" placeholder="Scramble message..." class="flex-1 bg-zinc-900 rounded-2xl p-4 outline-none border border-zinc-800 text-sm">
-            <button onclick="sendMessage()" class="bg-white text-black w-14 h-14 rounded-2xl flex items-center justify-center active:scale-90"><svg viewBox="0 0 24 24" class="w-6 h-6 fill-black"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+            <input id="msg-input" type="text" placeholder="Secret message..." class="flex-1 bg-zinc-900 rounded-2xl p-4 outline-none">
+            <button onclick="sendMsg()" class="bg-indigo-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
         </div>
     </div>
 
@@ -84,144 +83,149 @@
         firebase.initializeApp(config);
         const db = firebase.database();
 
-        let currentKey = "", destructEnabled = false;
-        let myID = localStorage.getItem('v9_id') || Math.floor(1000 + Math.random() * 9000).toString();
-        localStorage.setItem('v9_id', myID);
+        let vaultKey = "", sdOn = false;
+        let myID = localStorage.getItem('v10_id') || Math.floor(10000 + Math.random() * 89999).toString();
+        localStorage.setItem('v10_id', myID);
 
         function init() {
-            document.getElementById('peer-id').value = localStorage.getItem('v9_peer') || "";
-            updateHeader();
-            db.ref('inbox/' + myID).on('child_added', snap => {
-                const d = snap.val();
-                db.ref(`status/${d.sid}/${snap.key}`).set('delivered');
-                if(currentKey) tryDecryptAndRender(d.msg, false, snap.key, d.sd, d.ts);
-                else saveBlob(d.msg, false, snap.key, d.sd, d.ts);
+            document.getElementById('display-id').innerText = `Your ID: ${myID}`;
+            db.ref('vault/' + myID).on('child_added', snap => {
+                const data = snap.val();
+                db.ref(`status/${data.sid}/${snap.key}`).set('reached');
+                if(vaultKey) decryptAndShow(data.msg, false, snap.key, data.sd, data.ts);
+                else saveToDisk(data.msg, false, snap.key, data.sd, data.ts);
             });
-            db.ref('resets/' + myID).on('value', snap => {
-                if(snap.val() === 'request') document.getElementById('reset-modal').classList.remove('hidden');
-                if(snap.val() === 'go') finishWipe();
+            db.ref('purges/' + myID).on('value', snap => {
+                if(snap.val() === 'now') document.getElementById('wipe-modal').classList.remove('hidden');
+                if(snap.val() === 'go') wipeAll();
             });
-            document.getElementById('unlock-input').addEventListener("keyup", (e) => { if(e.key === "Enter") manualUnlock(); });
         }
 
-        function manualUnlock() {
-            const val = document.getElementById('unlock-input').value;
+        function unlockVault() {
+            const val = document.getElementById('key-input').value;
             if(!val) return;
-            currentKey = val;
+            vaultKey = val;
             document.getElementById('lock-screen').style.display = 'none';
-            document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-violet-500';
-            renderFromHistory();
+            renderHistory();
         }
 
-        function renderFromHistory() {
-            const h = JSON.parse(localStorage.getItem('v9_h_' + myID) || '[]');
-            h.forEach(m => tryDecryptAndRender(m.blob, m.isMe, m.id, m.sd, m.ts));
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('v10_hist_' + myID) || '[]');
+            history.forEach(m => decryptAndShow(m.blob, m.isMe, m.id, m.sd, m.ts));
         }
 
-        function tryDecryptAndRender(blob, isMe, id, sd, ts) {
+        function decryptAndShow(blob, isMe, msgId, sd, ts) {
             try {
-                const b = CryptoJS.AES.decrypt(blob, currentKey);
-                const txt = b.toString(CryptoJS.enc.Utf8);
-                if(!txt || document.getElementById('msg-'+id)) return;
+                const bytes = CryptoJS.AES.decrypt(blob, vaultKey);
+                const text = bytes.toString(CryptoJS.enc.Utf8);
+                if(!text || document.getElementById('m-'+msgId)) return;
 
-                if(!isMe) db.ref(`status/${localStorage.getItem('v9_peer')}/${id}`).set('seen');
+                if(!isMe) db.ref(`status/${localStorage.getItem('v10_p')}/${msgId}`).set('seen');
 
                 const d = document.createElement('div');
-                d.id = 'msg-' + id;
+                d.id = 'm-' + msgId;
                 d.className = `bubble ${isMe ? 'bubble-me' : 'bubble-them'}`;
-                let tBar = sd ? `<div class="timer-progress" id="p-${id}"></div>` : '';
-                let uL = isMe ? `<div class="flex justify-end"><div id="u-${id}" class="u-line"></div></div>` : '';
-                d.innerHTML = `<div>${txt}</div>${uL}${tBar}`;
+                
+                let tPart = sd ? `<div class="timer-bg"><div id="f-${msgId}" class="timer-fill"></div></div>` : '';
+                let sPart = isMe ? `<div class="flex justify-end"><div id="l-${msgId}" class="status-line"></div></div>` : '';
+                
+                d.innerHTML = `<div>${text}</div>${sPart}${tPart}`;
                 document.getElementById('chat-box').appendChild(d);
                 document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
 
-                if(!isMe) triggerSensoryFX(txt);
+                if(!isMe) checkKeywords(text);
 
                 if(sd) {
-                    const rem = Math.max(0, 30 - ((Date.now() - ts) / 1000));
-                    const p = document.getElementById(`p-${id}`);
-                    setTimeout(() => { p.style.transition = `width ${rem}s linear`; p.style.width = '0%'; }, 50);
-                    setTimeout(() => { d.remove(); deleteFromStorage(id); }, rem * 1000);
+                    const elapsed = (Date.now() - ts) / 1000;
+                    const rem = Math.max(0, 30 - elapsed);
+                    const fill = document.getElementById(`f-${msgId}`);
+                    setTimeout(() => { fill.style.transition = `width ${rem}s linear`; fill.style.width = '0%'; }, 50);
+                    setTimeout(() => { 
+                        d.remove(); 
+                        removeFromDisk(msgId);
+                        db.ref('vault/' + (isMe ? localStorage.getItem('v10_p') : myID)).child(msgId).remove();
+                    }, rem * 1000);
                 }
 
                 if(isMe) {
-                    db.ref(`status/${myID}/${id}`).on('value', s => {
-                        const l = document.getElementById(`u-${id}`);
-                        if(!l) return;
-                        if(s.val() === 'delivered') l.classList.add('delivered');
-                        if(s.val() === 'seen') { l.classList.add('delivered'); l.classList.add('seen'); }
+                    db.ref(`status/${myID}/${msgId}`).on('value', s => {
+                        const line = document.getElementById(`l-${msgId}`);
+                        if(!line) return;
+                        if(s.val() === 'reached') line.classList.add('delivered');
+                        if(s.val() === 'seen') { line.classList.add('delivered'); line.classList.add('seen'); }
                     });
                 }
             } catch(e) {}
         }
 
-        function sendMessage() {
+        function sendMsg() {
             const rid = document.getElementById('peer-id').value;
-            const msg = document.getElementById('msg-input').value.trim();
-            if(!rid || !currentKey || !msg) return;
-            const enc = CryptoJS.AES.encrypt(msg, currentKey).toString();
-            const id = Date.now();
-            db.ref('inbox/' + rid).push({ msg: enc, sid: myID, sd: destructEnabled, ts: id });
-            tryDecryptAndRender(enc, true, id, destructEnabled, id);
-            saveBlob(enc, true, id, destructEnabled, id);
+            const val = document.getElementById('msg-input').value.trim();
+            if(!rid || !vaultKey || !val) return;
+            localStorage.setItem('v10_p', rid);
+            
+            const enc = CryptoJS.AES.encrypt(val, vaultKey).toString();
+            const mid = Date.now();
+            db.ref('vault/' + rid + '/' + mid).set({ msg: enc, sid: myID, sd: sdOn, ts: mid });
+            decryptAndShow(enc, true, mid, sdOn, mid);
+            saveToDisk(enc, true, mid, sdOn, mid);
             document.getElementById('msg-input').value = "";
         }
 
-        function toggleDestruct() {
-            destructEnabled = !destructEnabled;
-            document.getElementById('t-dot').className = destructEnabled ? 'w-2 h-2 rounded-full bg-violet-500' : 'w-2 h-2 rounded-full bg-white/20';
-        }
-
-        function requestWipe() {
-            const rid = document.getElementById('peer-id').value;
-            if(rid) db.ref('resets/' + rid).set('request');
-        }
-
-        function executeMutualWipe() {
-            db.ref('resets/' + document.getElementById('peer-id').value).set('go');
-            document.getElementById('reset-modal').classList.add('hidden');
-            finishWipe();
-        }
-
-        function finishWipe() {
-            const keepID = confirm("Keep your current ID? (Cancel for Full Identity Reset)");
-            const savedID = myID;
-            localStorage.clear();
-            if(keepID) localStorage.setItem('v9_id', savedID);
-            location.reload();
-        }
-
-        function cancelWipe() { db.ref('resets/' + myID).remove(); document.getElementById('reset-modal').classList.add('hidden'); }
-        
-        function saveBlob(blob, isMe, id, sd, ts) {
-            const h = JSON.parse(localStorage.getItem('v9_h_' + myID) || '[]');
-            if(!h.find(x => x.id === id)) { h.push({blob, isMe, id, sd, ts}); localStorage.setItem('v9_h_' + myID, JSON.stringify(h)); }
-        }
-
-        function deleteFromStorage(id) {
-            const h = JSON.parse(localStorage.getItem('v9_h_' + myID) || '[]');
-            localStorage.setItem('v9_h_' + myID, JSON.stringify(h.filter(m => m.id !== id)));
-        }
-
-        function triggerSensoryFX(msg) {
-            const t = msg.toLowerCase();
-            const m = { 
-                "kiss":"💋", "spank":"🍑", "moan":"😩", "press":"🫂", "cuties":"🍒", "boobs":"🍒", 
-                "hot":"🔥", "pussy":"🐱", "hug":"🫂", "lick":"👅", "suck":"🍭" 
+        function checkKeywords(txt) {
+            const t = txt.toLowerCase();
+            const map = {
+                "boobs": "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3N5bmZ5Ynh6N3R4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKVUn7iM8FMEU24/giphy.gif",
+                "pussy": "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHR4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l2SpVztQ0r25oM4hW/giphy.gif",
+                "kiss": "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNXR4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l4FsKaMhGQFpqP2oM/giphy.gif"
             };
-            for (let k in m) if (t.includes(k)) {
-                for(let i=0; i<8; i++) {
-                    const el = document.createElement('div'); el.className = 'fx-element';
-                    el.innerText = m[k]; el.style.left = (Math.random() * 80 + 10) + "%";
-                    el.style.top = "85%"; el.style.animationDelay = (i * 0.1) + "s";
-                    document.body.appendChild(el); setTimeout(() => el.remove(), 2500);
+            for(let k in map) {
+                if(t.includes(k)) {
+                    const img = document.createElement('img');
+                    img.src = map[k]; img.className = 'explicit-gif';
+                    img.style.left = Math.random() * 50 + '%'; img.style.top = '40%';
+                    document.getElementById('fx-layer').appendChild(img);
+                    setTimeout(() => img.remove(), 2000);
                 }
             }
         }
 
-        function savePeer(v) { localStorage.setItem('v9_peer', v); }
-        function setUsername() { const n = prompt("Alias:"); if(n) { localStorage.setItem('v9_name', n); updateHeader(); } }
-        function updateHeader() { document.getElementById('display-user').innerText = `${localStorage.getItem('v9_name') || "Vault"} • ID ${myID}`; }
+        function toggleSD() {
+            sdOn = !sdOn;
+            const btn = document.getElementById('sd-btn');
+            btn.innerText = sdOn ? "TIMER ON" : "TIMER OFF";
+            btn.style.borderColor = sdOn ? "#6366f1" : "#3f3f46";
+            btn.style.color = sdOn ? "#818cf8" : "#a1a1aa";
+        }
+
+        function requestWipe() {
+            const rid = document.getElementById('peer-id').value;
+            if(rid) db.ref('purges/' + rid).set('now');
+        }
+
+        function performWipe() {
+            const rid = document.getElementById('peer-id').value;
+            db.ref('purges/' + rid).set('go');
+            wipeAll();
+        }
+
+        function wipeAll() {
+            db.ref('vault/' + myID).remove();
+            db.ref('purges/' + myID).remove();
+            localStorage.clear();
+            location.reload();
+        }
+
+        function cancelWipe() { db.ref('purges/' + myID).remove(); document.getElementById('wipe-modal').classList.add('hidden'); }
+        function saveToDisk(blob, isMe, id, sd, ts) {
+            const h = JSON.parse(localStorage.getItem('v10_hist_' + myID) || '[]');
+            h.push({blob, isMe, id, sd, ts});
+            localStorage.setItem('v10_hist_' + myID, JSON.stringify(h));
+        }
+        function removeFromDisk(id) {
+            const h = JSON.parse(localStorage.getItem('v10_hist_' + myID) || '[]');
+            localStorage.setItem('v10_hist_' + myID, JSON.stringify(h.filter(m => m.id !== id)));
+        }
         window.onload = init;
     </script>
 </body>
