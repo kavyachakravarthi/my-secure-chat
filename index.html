@@ -2,95 +2,151 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SecureWeb Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Smooth scrolling for the chat box */
+        #chat-box { scroll-behavior: smooth; }
+        /* Hide scrollbar for a cleaner mobile look */
+        #chat-box::-webkit-scrollbar { display: none; }
+    </style>
 </head>
-<body class="bg-[#0b141a] text-gray-200 h-screen flex flex-col">
+<body class="bg-[#0b141a] text-gray-200 h-screen flex flex-col overflow-hidden">
 
-    <header class="bg-[#202c33] p-4 flex justify-between items-center shadow-md">
-        <h1 class="font-bold text-emerald-500">🔐 PrivateChat</h1>
-        <button onclick="requestNotifications()" class="text-xs bg-emerald-700 px-2 py-1 rounded">Enable Notifications</button>
+    <header class="bg-[#202c33] p-4 flex justify-between items-center shadow-md z-10">
+        <h1 class="font-bold text-emerald-500 flex items-center gap-2">
+            <span>🔐</span> PrivateChat
+        </h1>
+        <button onclick="requestNotifications()" class="text-[10px] bg-emerald-700 hover:bg-emerald-600 px-3 py-1 rounded-full uppercase font-bold transition">
+            Enable Alerts
+        </button>
     </header>
 
-    <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col"></div>
+    <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
+        <p class="text-center text-gray-500 text-xs my-4 italic">Messages are end-to-end encrypted. Only you and the recipient can read them.</p>
+    </div>
 
-    <div class="bg-[#202c33] p-3 space-y-2">
-        <input id="peer-key" type="text" placeholder="Paste friend's Public Key..." class="w-full bg-[#2a3942] p-2 text-xs rounded border-none">
-        <div class="flex gap-2">
-            <input id="msg-input" type="text" placeholder="Type message..." class="flex-1 bg-[#2a3942] p-3 rounded-lg outline-none">
-            <button onclick="sendMessage()" class="bg-emerald-600 px-6 rounded-lg font-bold text-white">SEND</button>
+    <div class="bg-[#202c33] p-3 border-t border-gray-800 shadow-2xl">
+        <input id="peer-key" type="text" placeholder="Paste friend's Public Key here..." 
+               class="w-full bg-[#2a3942] p-2 text-[10px] rounded mb-2 border-none text-emerald-400 placeholder-gray-500 focus:ring-1 focus:ring-emerald-500 outline-none">
+        
+        <div class="flex gap-2 items-center">
+            <input id="msg-input" type="text" placeholder="Type a message" 
+                   class="flex-1 bg-[#2a3942] p-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-emerald-500">
+            <button onclick="sendMessage()" class="bg-emerald-600 w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                <svg viewBox="0 0 24 24" class="w-6 h-6 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
         </div>
     </div>
 
-    <div class="p-3 bg-black text-[10px]">
-        <p class="text-gray-500">YOUR KEY (SHARE THIS):</p>
-        <p id="my-key-display" class="break-all text-emerald-400 select-all"></p>
+    <div class="bg-black p-4 border-t border-gray-900">
+        <div class="flex justify-between items-center mb-1">
+            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Your Public Key:</p>
+            <button onclick="copyMyKey()" class="text-[10px] text-emerald-500 font-bold">COPY KEY</button>
+        </div>
+        <p id="my-key-display" class="break-all text-[9px] text-emerald-600 font-mono opacity-80 bg-gray-900 p-2 rounded">Generating keys...</p>
     </div>
 
     <script>
-        // CONFIGURATION
+        // 1. DATABASE CONFIGURATION
         const SB_URL = "https://ukwhmucwyxxrheqcjydc.supabase.co"; 
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrd2htdWN3eXh4cmhlcWNqeWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4NTkyODgsImV4cCI6MjA4NTQzNTI4OH0.L9WT5VVAUXlfNiDdaPRZEikUHU7IyJPb6bGv2abTWTs";
-        const supabase = supabase.createClient(SB_URL, SB_KEY);
+        
+        // Use a descriptive name for the client to avoid library conflicts
+        const dbClient = supabase.createClient(SB_URL, SB_KEY);
 
         let myKeyPair;
 
-        // 1. Browser Notifications
+        // 2. IDENTITY & NOTIFICATIONS
         function requestNotifications() {
-            Notification.requestPermission();
+            Notification.requestPermission().then(perm => {
+                if(perm === 'granted') alert("Notifications enabled!");
+            });
         }
 
-        // 2. Encryption Setup
+        function copyMyKey() {
+            const keyText = document.getElementById('my-key-display').innerText;
+            navigator.clipboard.writeText(keyText);
+            alert("Your key has been copied! Send it to your friend.");
+        }
+
+        // 3. ENCRYPTION ENGINE
         async function init() {
-            myKeyPair = await window.crypto.subtle.generateKey(
-                { name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]
-            );
-            const pub = await window.crypto.subtle.exportKey("jwk", myKeyPair.publicKey);
-            document.getElementById('my-key-display').innerText = JSON.stringify(pub);
-            
-            loadExistingMessages();
-            listenRealTime();
+            try {
+                // Generates a unique key pair for this browser session
+                myKeyPair = await window.crypto.subtle.generateKey(
+                    { name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]
+                );
+                const pub = await window.crypto.subtle.exportKey("jwk", myKeyPair.publicKey);
+                document.getElementById('my-key-display').innerText = JSON.stringify(pub);
+                
+                loadExistingMessages();
+                listenRealTime();
+            } catch (err) {
+                console.error("Initialization failed:", err);
+                document.getElementById('my-key-display').innerText = "Key generation failed. Refresh.";
+            }
         }
 
         async function getSecret(peerJWK) {
             const peerKey = await window.crypto.subtle.importKey("jwk", peerJWK, { name: "ECDH", namedCurve: "P-256" }, true, []);
-            return await window.crypto.subtle.deriveKey({ name: "ECDH", public: peerKey }, myKeyPair.privateKey, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+            return await window.crypto.subtle.deriveKey(
+                { name: "ECDH", public: peerKey }, 
+                myKeyPair.privateKey, 
+                { name: "AES-GCM", length: 256 }, 
+                true, ["encrypt", "decrypt"]
+            );
         }
 
-        // 3. Send Message
+        // 4. MESSAGE HANDLING
         async function sendMessage() {
             const input = document.getElementById('msg-input');
             const peerKeyStr = document.getElementById('peer-key').value;
-            if(!input.value || !peerKeyStr) return alert("Need message and friend's key!");
+            
+            if(!input.value) return;
+            if(!peerKeyStr) return alert("You must paste your friend's public key first!");
 
-            const secret = await getSecret(JSON.parse(peerKeyStr));
-            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-            const enc = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv }, secret, new TextEncoder().encode(input.value));
+            try {
+                const secret = await getSecret(JSON.parse(peerKeyStr));
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const enc = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv }, 
+                    secret, 
+                    new TextEncoder().encode(input.value)
+                );
 
-            const { error } = await supabase.from('messages').insert([{
-                content: btoa(String.fromCharCode(...new Uint8Array(enc))),
-                iv: btoa(String.fromCharCode(...iv)),
-                sender_pub_key: JSON.parse(document.getElementById('my-key-display').innerText)
-            }]);
+                const { error } = await dbClient.from('messages').insert([{
+                    content: btoa(String.fromCharCode(...new Uint8Array(enc))),
+                    iv: btoa(String.fromCharCode(...iv)),
+                    sender_pub_key: JSON.parse(document.getElementById('my-key-display').innerText)
+                }]);
 
-            if(!error) input.value = "";
+                if(!error) {
+                    input.value = "";
+                } else {
+                    console.error("DB Error:", error);
+                }
+            } catch (e) {
+                alert("Error: Check if the friend's key is valid JSON.");
+            }
         }
 
-        // 4. Real-time Listen & History
+        // 5. REAL-TIME ENGINE
         async function loadExistingMessages() {
-            const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+            const { data } = await dbClient.from('messages').select('*').order('created_at', { ascending: true });
             if(data) data.forEach(msg => decryptAndDisplay(msg));
         }
 
         function listenRealTime() {
-            supabase.channel('messages').on('postgres_changes', { event: 'INSERT', table: 'messages' }, payload => {
-                decryptAndDisplay(payload.new);
-                if (document.hidden) {
-                    new Notification("New Secure Message Received");
-                }
-            }).subscribe();
+            dbClient.channel('messages')
+                .on('postgres_changes', { event: 'INSERT', table: 'messages' }, payload => {
+                    decryptAndDisplay(payload.new);
+                    if (document.hidden) {
+                        new Notification("🔐 New Secure Message");
+                    }
+                }).subscribe();
         }
 
         async function decryptAndDisplay(msg) {
@@ -102,14 +158,24 @@
                 const dec = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: ivData }, secret, encData);
                 const text = new TextDecoder().decode(dec);
                 
+                const myKeyText = document.getElementById('my-key-display').innerText;
+                const isMe = JSON.stringify(msg.sender_pub_key) === myKeyText;
+
                 const div = document.createElement('div');
-                div.className = "p-3 bg-[#202c33] rounded-lg max-w-[80%]";
+                div.className = `p-3 rounded-2xl max-w-[85%] text-sm shadow-sm ${
+                    isMe ? 'bg-emerald-800 self-end rounded-tr-none text-white' : 'bg-[#202c33] self-start rounded-tl-none text-gray-100'
+                }`;
                 div.innerText = text;
-                document.getElementById('chat-box').appendChild(div);
-                div.scrollIntoView();
-            } catch(e) { /* Message not for us */ }
+                
+                const chatBox = document.getElementById('chat-box');
+                chatBox.appendChild(div);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch(e) { 
+                // Decryption fails if the message was not meant for this user's session keys
+            }
         }
 
+        // Start the app
         init();
     </script>
 </body>
