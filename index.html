@@ -3,39 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-    <title>ATchat | Secure</title>
+    <title>ATchat | Persistent</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;700&display=swap" rel="stylesheet">
+    
     <style>
         :root { --safe-bottom: env(safe-area-inset-bottom); }
-        body { background-color: #000000; color: #e2e8f0; }
+        body { background-color: #000000; color: #f8fafc; font-family: 'Space Grotesk', sans-serif; }
         
         #chat-box::-webkit-scrollbar { display: none; }
         
-        /* Premium Dark Bubbles */
-        .bubble { 
-            position: relative;
-            max-width: 80%;
-            padding: 14px 18px;
-            border-radius: 22px;
-            font-size: 15px;
-            line-height: 1.4;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            animation: slideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.2);
+        .logo-text {
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: -2px;
+            background: linear-gradient(to right, #60a5fa, #2dd4bf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .bubble { 
+            max-width: 85%;
+            padding: 14px 18px;
+            border-radius: 24px;
+            font-size: 15px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.4s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } }
         
-        .glass-input {
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        .glass-footer {
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(25px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
             padding-bottom: calc(20px + var(--safe-bottom));
         }
 
-        /* Kiss Animation */
         .kiss-emoji {
             position: absolute;
             font-size: 50px;
@@ -45,74 +51,63 @@
         }
         @keyframes floatKiss {
             0% { transform: translateY(0) scale(0); opacity: 0; }
-            20% { opacity: 1; transform: translateY(-30px) scale(1.3); }
-            100% { transform: translateY(-120px) scale(1); opacity: 0; }
-        }
-
-        .logo-gradient {
-            background: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { transform: translateY(-150px) scale(1); opacity: 0; }
         }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
-    <header class="bg-black/50 px-6 py-4 pt-[calc(1.5rem+env(safe-area-inset-top))] flex justify-between items-center z-30 border-b border-white/5">
+    <header class="bg-black/80 px-6 py-5 pt-[calc(1.8rem+env(safe-area-inset-top))] flex justify-between items-center z-30 border-b border-white/10">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/40">
-                <svg viewBox="0 0 24 24" class="w-6 h-6 fill-white">
-                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+            <div class="relative w-12 h-12 flex items-center justify-center">
+                <div class="absolute inset-0 bg-blue-500 blur-lg opacity-20"></div>
+                <svg viewBox="0 0 24 24" class="w-8 h-8 fill-blue-500 relative">
+                    <path d="M12 2C6.48 2 2 6.48 2 12c0 2.02.6 3.9 1.63 5.48L2 22l4.52-1.63C8.1 21.4 9.98 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.85 0-3.58-.55-5.03-1.5l-.36-.23-2.68.97.97-2.68-.23-.36C3.55 15.58 3 13.85 3 12c0-4.96 4.04-9 9-9s9 4.04 9 9-4.04 9-9 9z"/>
                 </svg>
             </div>
             <div>
-                <h1 class="font-black text-xl tracking-tighter leading-none">AT<span class="text-blue-500">chat</span></h1>
-                <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Permanent Link Active</span>
+                <h1 class="logo-text text-3xl font-bold">AT<span class="text-white">chat</span></h1>
+                <p class="text-[9px] font-bold text-emerald-400 uppercase tracking-[0.2em]">Background Link Active</p>
             </div>
         </div>
-        <div class="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-            <div id="status-dot" class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]"></div>
-            <span class="text-[10px] font-bold text-blue-400 uppercase">Encrypted</span>
-        </div>
+        <button onclick="showMyQR()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+            <svg viewBox="0 0 24 24" class="w-5 h-5 fill-white"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13-2h-2v2h-2v2h2v2h2v-2h2v-2h-2v-2z"/></svg>
+        </button>
     </header>
 
-    <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col bg-[#000000]">
-        <p class="text-center text-gray-600 text-[10px] uppercase font-bold tracking-widest opacity-50">End-to-End Encrypted Tunnel</p>
+    <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col bg-black">
+        <p class="text-center text-zinc-600 text-[10px] font-bold uppercase tracking-widest pt-4">Messages are saved locally & encrypted</p>
     </div>
 
-    <div class="px-6 -mb-4 z-40 flex gap-2">
-        <button onclick="showMyQR()" class="flex-1 bg-zinc-900 text-blue-400 py-3.5 rounded-2xl text-[10px] font-bold uppercase border border-white/5 active:scale-95 transition-all">My ID</button>
-        <button onclick="startScanner()" class="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl text-[10px] font-bold uppercase shadow-xl active:scale-95 transition-all">Scan Peer</button>
-    </div>
-
-    <div class="glass-input px-6 pt-8">
-        <div class="flex items-center gap-2 mb-4 bg-white/5 p-1 rounded-xl border border-white/10">
-            <span class="pl-2 text-[10px] font-bold text-gray-500 uppercase">Chatting with:</span>
-            <input id="peer-id" type="text" oninput="savePeer(this.value)" placeholder="Enter Friend's ID..." 
-                   class="flex-1 bg-transparent py-2 text-xs font-mono text-blue-400 outline-none">
-            <button onclick="clearPeer()" class="text-[9px] bg-red-900/30 text-red-400 px-2 py-1 rounded font-bold mr-1">RESET</button>
+    <div class="glass-footer px-6 pt-6">
+        <div class="flex items-center gap-3 mb-5 bg-white/5 p-2 rounded-2xl border border-white/10">
+            <div class="bg-blue-500/20 text-blue-400 p-2 rounded-xl text-[10px] font-bold uppercase">To</div>
+            <input id="peer-id" type="text" oninput="savePeer(this.value)" placeholder="Enter Friend ID..." 
+                   class="flex-1 bg-transparent py-1 text-sm font-bold text-blue-400 outline-none">
+            <button onclick="startScanner()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase shadow-lg shadow-blue-900/40">Scan</button>
         </div>
         
         <div class="flex gap-3 items-center">
-            <div class="flex-1 bg-white/5 rounded-2xl border border-white/10 px-4 flex items-center">
-                <input id="msg-input" type="text" placeholder="Send message..." 
-                       class="w-full py-4 bg-transparent outline-none text-white text-lg">
+            <div class="flex-1 bg-zinc-900/50 rounded-2xl border border-white/10 px-5 shadow-inner">
+                <input id="msg-input" type="text" placeholder="Message..." 
+                       class="w-full py-5 bg-transparent outline-none text-white text-md">
             </div>
-            <button onclick="sendMessage()" class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-all">
-                <svg viewBox="0 0 24 24" class="w-7 h-7 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            <button onclick="sendMessage()" class="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-900/40 active:scale-95 transition-all">
+                <svg viewBox="0 0 24 24" class="w-8 h-8 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
         </div>
     </div>
 
     <div id="scanner-container" class="hidden fixed inset-0 bg-black z-50 flex flex-col">
         <div id="reader" class="flex-1"></div>
-        <button onclick="stopScanner()" class="p-8 bg-zinc-900 text-white font-bold">CLOSE CAMERA</button>
+        <button onclick="stopScanner()" class="p-8 bg-zinc-900 text-white font-bold uppercase tracking-widest">Back to Chat</button>
     </div>
 
     <div id="qr-modal" class="hidden fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-6" onclick="this.classList.add('hidden')">
-        <div class="bg-white p-6 rounded-[32px]"><div id="qrcode"></div></div>
-        <div class="mt-8 flex flex-col gap-3 w-full max-w-xs">
-            <button onclick="copyMyID(event)" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg">COPY MY ID</button>
+        <div class="bg-white p-6 rounded-[40px] shadow-[0_0_50px_rgba(59,130,246,0.3)]"><div id="qrcode"></div></div>
+        <div class="mt-10 flex flex-col gap-4 w-full max-w-xs">
+            <button onclick="copyMyID(event)" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-900/40 uppercase">Copy My ID</button>
         </div>
     </div>
 
@@ -130,38 +125,42 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let myKeys, myID;
+        let myKeys, myID, history = [];
 
         async function init() {
-            if ("Notification" in window) Notification.requestPermission();
+            // 1. Setup Notifications
+            if ("Notification" in window) {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') console.log('Notifications enabled');
+            }
 
-            // Identity
+            // 2. Load Identity
             myID = localStorage.getItem('atchat_id') || Math.random().toString(36).substring(2, 10).toUpperCase();
             localStorage.setItem('atchat_id', myID);
 
-            // PERMANENT CONNECTION LOGIC
+            // 3. Persistent Connection Load
             const savedPeer = localStorage.getItem('atchat_permanent_peer');
-            if (savedPeer) {
-                document.getElementById('peer-id').value = savedPeer;
+            if (savedPeer) document.getElementById('peer-id').value = savedPeer;
+
+            // 4. Load Saved History from LocalStorage
+            const savedHistory = localStorage.getItem('atchat_history_' + myID);
+            if (savedHistory) {
+                history = JSON.parse(savedHistory);
+                history.forEach(m => addBubble(m.text, m.isMe, true));
             }
 
+            // 5. Crypto Keys
             myKeys = await window.crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]);
             const pubJWK = await window.crypto.subtle.exportKey("jwk", myKeys.publicKey);
             db.ref('registry/' + myID).set({ pub: pubJWK });
 
+            // 6. Real-time Inbox
             db.ref('inbox/' + myID).on('child_added', snap => {
-                decryptAndShow(snap.val());
+                decryptAndShow(snap.val(), snap.key);
             });
         }
 
-        function savePeer(val) {
-            localStorage.setItem('atchat_permanent_peer', val.toUpperCase());
-        }
-
-        function clearPeer() {
-            localStorage.removeItem('atchat_permanent_peer');
-            document.getElementById('peer-id').value = "";
-        }
+        function savePeer(val) { localStorage.setItem('atchat_permanent_peer', val.toUpperCase()); }
 
         async function sendMessage() {
             const rid = document.getElementById('peer-id').value.trim();
@@ -180,33 +179,45 @@
                 c: btoa(String.fromCharCode(...new Uint8Array(enc))),
                 iv: btoa(String.fromCharCode(...iv)),
                 sid: myID,
-                spub: await window.crypto.subtle.exportKey("jwk", myKeys.publicKey)
+                spub: await window.crypto.subtle.exportKey("jwk", myKeys.publicKey),
+                t: Date.now()
             });
 
+            saveToHistory(text, true);
             addBubble(text, true);
             if (text.toLowerCase().includes('kiss')) triggerKiss();
             document.getElementById('msg-input').value = "";
         }
 
-        async function decryptAndShow(msg) {
+        async function decryptAndShow(msg, key) {
+            // Prevent duplicate loading of messages already in history
+            if (history.find(h => h.id === key)) return;
+
             try {
                 const spub = await window.crypto.subtle.importKey("jwk", msg.spub, { name: "ECDH", namedCurve: "P-256" }, true, []);
                 const secret = await window.crypto.subtle.deriveKey({ name: "ECDH", public: spub }, myKeys.privateKey, { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
                 const dec = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: Uint8Array.from(atob(msg.iv), c => c.charCodeAt(0)) }, secret, Uint8Array.from(atob(msg.c), c => c.charCodeAt(0)));
                 const text = new TextDecoder().decode(dec);
                 
+                saveToHistory(text, false, key);
                 addBubble(text, false);
                 if (text.toLowerCase().includes('kiss')) triggerKiss();
                 
-                if (Notification.permission === "granted") {
-                    new Notification("ATchat", { body: "New Secure Message Received" });
+                // Show notification even if browser is in background
+                if (document.visibilityState !== 'visible' && Notification.permission === "granted") {
+                    new Notification("ATchat", { body: "New Secure Message Received", icon: "/favicon.ico" });
                 }
             } catch(e) {}
         }
 
-        function addBubble(text, isMe) {
+        function saveToHistory(text, isMe, id = Date.now()) {
+            history.push({ text, isMe, id });
+            localStorage.setItem('atchat_history_' + myID, JSON.stringify(history));
+        }
+
+        function addBubble(text, isMe, isHistory = false) {
             const div = document.createElement('div');
-            div.className = `bubble ${isMe ? 'bg-blue-600 text-white self-end rounded-tr-none' : 'bg-zinc-800 text-gray-100 self-start rounded-tl-none border border-white/5'}`;
+            div.className = `bubble ${isMe ? 'bg-blue-600 text-white self-end rounded-tr-none' : 'bg-zinc-900 text-zinc-100 self-start rounded-tl-none border border-white/5'}`;
             div.innerText = text;
             const box = document.getElementById('chat-box');
             box.appendChild(div);
@@ -217,8 +228,8 @@
             const kiss = document.createElement('div');
             kiss.className = 'kiss-emoji';
             kiss.innerText = '🥰';
-            kiss.style.left = Math.random() * 70 + 15 + '%';
-            kiss.style.top = '60%';
+            kiss.style.left = Math.random() * 60 + 20 + '%';
+            kiss.style.top = '70%';
             document.body.appendChild(kiss);
             setTimeout(() => kiss.remove(), 2000);
         }
@@ -232,7 +243,7 @@
         function copyMyID(e) {
             e.stopPropagation();
             navigator.clipboard.writeText(myID);
-            alert("ID Copied!");
+            alert("Copied!");
         }
 
         function startScanner() {
