@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>ATchat | E2EE</title>
+    <title>ATchat Vault</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -16,22 +15,33 @@
         :root { --safe-bottom: env(safe-area-inset-bottom); }
         body { background: #050505; color: #fff; font-family: 'Space Grotesk', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
         #chat-box::-webkit-scrollbar { display: none; }
-        .glass-panel { background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(20px); border-top: 1px solid #222; padding-bottom: calc(15px + var(--safe-bottom)); }
-        .bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 15px; overflow-wrap: break-word; }
-        .fx-element { position: absolute; font-size: 50px; pointer-events: none; animation: floatEffect 2.5s forwards; z-index: 100; opacity: 0; }
-        @keyframes floatEffect { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-250px) scale(1.5); opacity: 0; } }
-        .btn-reset { border: 1px solid rgba(239, 68, 68, 0.4); }
+        .glass-panel { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(30px); border-top: 1px solid #222; padding-bottom: calc(15px + var(--safe-bottom)); }
+        
+        /* Mesmerizing FX */
+        .fx-element {
+            position: absolute; font-size: 60px; pointer-events: none;
+            animation: floatUp 3s ease-out forwards; z-index: 100; filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5) rotate(0deg); opacity: 0; }
+            20% { opacity: 1; }
+            100% { transform: translateY(-400px) scale(1.8) rotate(45deg); opacity: 0; }
+        }
+
+        .bubble { max-width: 80%; padding: 14px 18px; border-radius: 22px; font-size: 15px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .btn-reset { border: 1px solid #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
+        input::placeholder { color: #4b5563; font-weight: 500; }
     </style>
 </head>
 <body>
 
-    <header class="p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] border-b border-white/10 flex justify-between items-center">
+    <header class="p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] border-b border-white/5 flex justify-between items-center bg-black/40">
         <div>
             <h1 class="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">ATchat Vault</h1>
             <p id="display-user" class="text-[10px] text-violet-500 font-bold uppercase tracking-widest cursor-pointer" onclick="setUsername()"></p>
         </div>
         <div class="flex gap-3">
-            <button onclick="wipeData()" class="btn-reset w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center active:scale-90">
+            <button onclick="wipeData()" class="btn-reset w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center active:scale-90" title="Delete All">
                 <svg viewBox="0 0 24 24" class="w-5 h-5 fill-red-500"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
             </button>
             <button onclick="showMyQR()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
@@ -40,32 +50,32 @@
         </div>
     </header>
 
-    <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col"></div>
+    <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-5 flex flex-col"></div>
 
     <div class="glass-panel p-4">
-        <div class="flex gap-2 mb-3">
-            <div class="flex-1 bg-white/5 p-2 px-4 rounded-xl border border-white/10 flex items-center gap-2">
-                <span class="text-[9px] text-violet-400 font-bold uppercase">To:</span>
-                <input id="peer-id" type="number" oninput="savePeer(this.value)" placeholder="4-Digit ID" class="flex-1 text-xs text-white font-bold outline-none bg-transparent">
+        <div class="flex gap-2 mb-4">
+            <div class="flex-[1] bg-white/5 p-2 px-4 rounded-xl border border-white/10">
+                <span class="text-[8px] text-violet-400 font-bold uppercase block">To:</span>
+                <input id="peer-id" type="number" oninput="savePeer(this.value)" placeholder="ID" class="w-full text-xs text-white font-bold outline-none bg-transparent">
             </div>
-            <div class="flex-1 bg-white/5 p-2 px-4 rounded-xl border border-violet-500/30 flex items-center gap-2">
-                <span class="text-[9px] text-fuchsia-400 font-bold uppercase">Key:</span>
-                <input id="secret-key" type="password" oninput="saveKey(this.value)" placeholder="Secret Key" class="flex-1 text-xs text-white font-bold outline-none bg-transparent">
+            <div class="flex-[2] bg-white/5 p-2 px-4 rounded-xl border border-violet-500/40">
+                <span class="text-[8px] text-fuchsia-400 font-bold uppercase block">Secret Key:</span>
+                <input id="secret-key" type="password" oninput="saveKey(this.value)" placeholder="Required for E2EE" class="w-full text-xs text-white font-bold outline-none bg-transparent">
             </div>
         </div>
         
         <div class="flex gap-3 items-center">
-            <input id="msg-input" type="text" placeholder="Encrypted message..." class="flex-1 bg-zinc-900 rounded-2xl p-4 outline-none border border-white/5 text-white">
-            <button onclick="sendMessage()" class="bg-violet-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-90">
+            <input id="msg-input" type="text" placeholder="Scrambled message..." class="flex-1 bg-zinc-900/80 rounded-2xl p-4 outline-none border border-white/5 text-white">
+            <button onclick="sendMessage()" class="bg-violet-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all">
                 <svg viewBox="0 0 24 24" class="w-7 h-7 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
         </div>
     </div>
 
     <div id="qr-modal" class="hidden fixed inset-0 bg-black/98 z-50 flex flex-col items-center justify-center p-8" onclick="this.classList.add('hidden')">
-        <div class="bg-white p-6 rounded-[32px] mb-8"><div id="qrcode"></div></div>
-        <p id="my-id-display" class="text-violet-400 text-2xl font-bold"></p>
-        <button onclick="copyMyID(event)" class="mt-8 px-8 py-3 bg-violet-600 rounded-xl font-bold">Copy ID</button>
+        <div class="bg-white p-6 rounded-[40px] mb-8"><div id="qrcode"></div></div>
+        <p id="my-id-display" class="text-violet-400 text-3xl font-bold tracking-widest"></p>
+        <button onclick="copyMyID(event)" class="mt-8 px-10 py-4 bg-violet-600 rounded-2xl font-bold shadow-xl">COPY MY ID</button>
     </div>
 
     <script>
@@ -86,26 +96,40 @@
             document.getElementById('peer-id').value = localStorage.getItem('permanent_peer') || "";
             document.getElementById('secret-key').value = localStorage.getItem('e2ee_key') || "";
             updateHeader();
-
-            const hist = JSON.parse(localStorage.getItem('chat_hist_' + myID) || '[]');
-            hist.forEach(m => renderBubble(m.text, m.isMe));
+            loadHistory();
 
             db.ref('inbox/' + myID).on('child_added', snap => {
                 const data = snap.val();
+                const hist = JSON.parse(localStorage.getItem('chat_hist_' + myID) || '[]');
                 if(!hist.find(h => h.id === snap.key)) {
-                    // DECRYPT INCOMING
                     const key = localStorage.getItem('e2ee_key');
-                    let decrypted = "Locked Message";
+                    let decoded = "⚠️ Encryption Mismatch";
                     try {
                         const bytes = CryptoJS.AES.decrypt(data.msg, key);
-                        decrypted = bytes.toString(CryptoJS.enc.Utf8);
-                    } catch(e) { decrypted = "⚠️ Wrong Key"; }
+                        decoded = bytes.toString(CryptoJS.enc.Utf8);
+                        if(!decoded) throw new Error();
+                    } catch(e) { decoded = "🔒 Locked Content"; }
 
-                    renderBubble(decrypted, false);
-                    saveMessage(decrypted, false, snap.key);
-                    triggerSensoryFX(decrypted);
+                    renderBubble(decoded, false);
+                    saveMessage(decoded, false, snap.key);
+                    triggerSensoryFX(decoded);
                 }
             });
+        }
+
+        function triggerSensoryFX(msg) {
+            const text = msg.toLowerCase();
+            const map = { "kiss": "💋", "spank": "🍑", "moan": "😩", "press": "🫂", "cuties": "🍒", "boobs": "🍒", "hot": "🔥" };
+            for (let word in map) {
+                if (text.includes(word)) {
+                    for(let i=0; i<8; i++) {
+                        const el = document.createElement('div'); el.className = 'fx-element';
+                        el.innerText = map[word]; el.style.left = (Math.random() * 80 + 10) + "%";
+                        el.style.top = "85%"; el.style.animationDelay = (i * 0.15) + "s";
+                        document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
+                    }
+                }
+            }
         }
 
         function sendMessage() {
@@ -114,7 +138,6 @@
             const msg = document.getElementById('msg-input').value.trim();
             if(!rid || !key || !msg) return;
 
-            // ENCRYPT BEFORE SENDING
             const encrypted = CryptoJS.AES.encrypt(msg, key).toString();
             db.ref('inbox/' + rid).push({ msg: encrypted, sid: myID });
 
@@ -124,27 +147,9 @@
             document.getElementById('msg-input').value = "";
         }
 
-        function saveKey(v) { localStorage.setItem('e2ee_key', v); }
-        function savePeer(v) { localStorage.setItem('permanent_peer', v); }
-        
-        function triggerSensoryFX(msg) {
-            const text = msg.toLowerCase();
-            const triggers = { "kiss": "💋", "spank": "🍑", "moan": "😩", "press": "🫂", "cuties": "🍒", "boobs": "🍒", "hot": "🔥" };
-            for (let word in triggers) {
-                if (text.includes(word)) {
-                    for(let i=0; i<6; i++) {
-                        const el = document.createElement('div'); el.className = 'fx-element';
-                        el.innerText = triggers[word]; el.style.left = (Math.random() * 80 + 10) + "%";
-                        el.style.top = "80%"; el.style.animationDelay = (i * 0.2) + "s";
-                        document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
-                    }
-                }
-            }
-        }
-
         function renderBubble(text, isMe) {
             const d = document.createElement('div');
-            d.className = `bubble ${isMe ? 'bg-violet-600 self-end rounded-tr-none' : 'bg-zinc-800 self-start rounded-tl-none'}`;
+            d.className = `bubble ${isMe ? 'bg-violet-600 self-end rounded-br-none' : 'bg-zinc-800 self-start rounded-bl-none'}`;
             d.innerText = text;
             const box = document.getElementById('chat-box');
             box.appendChild(d);
@@ -157,25 +162,17 @@
             localStorage.setItem('chat_hist_' + myID, JSON.stringify(hist));
         }
 
-        function setUsername() {
-            const name = prompt("Enter Name:");
-            if(name) { localStorage.setItem('atchat_name', name); updateHeader(); }
+        function loadHistory() {
+            const hist = JSON.parse(localStorage.getItem('chat_hist_' + myID) || '[]');
+            hist.forEach(m => renderBubble(m.text, m.isMe));
         }
 
-        function updateHeader() {
-            const name = localStorage.getItem('atchat_name') || "Ghost";
-            document.getElementById('display-user').innerText = `${name} • ID: ${myID}`;
-            document.getElementById('my-id-display').innerText = myID;
-        }
-
-        function wipeData() { if(confirm("Wipe data?")) { localStorage.clear(); location.reload(); } }
-
-        function showMyQR() {
-            document.getElementById('qrcode').innerHTML = "";
-            new QRCode(document.getElementById("qrcode"), { text: myID, width: 220, height: 220 });
-            document.getElementById('qr-modal').classList.remove('hidden');
-        }
-
+        function saveKey(v) { localStorage.setItem('e2ee_key', v); }
+        function savePeer(v) { localStorage.setItem('permanent_peer', v); }
+        function setUsername() { const name = prompt("Name:"); if(name) { localStorage.setItem('atchat_name', name); updateHeader(); } }
+        function updateHeader() { const name = localStorage.getItem('atchat_name') || "Ghost"; document.getElementById('display-user').innerText = `${name} • ID: ${myID}`; document.getElementById('my-id-display').innerText = myID; }
+        function wipeData() { if(confirm("Wipe all messages?")) { localStorage.clear(); location.reload(); } }
+        function showMyQR() { document.getElementById('qrcode').innerHTML = ""; new QRCode(document.getElementById("qrcode"), { text: myID, width: 220, height: 220 }); document.getElementById('qr-modal').classList.remove('hidden'); }
         function copyMyID(e) { e.stopPropagation(); navigator.clipboard.writeText(myID); alert("Copied!"); }
 
         window.onload = init;
