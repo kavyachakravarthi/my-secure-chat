@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ATchat - P2P</title>
+    <title>ATchat - P2P Mesh</title>
     <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -11,53 +11,48 @@
     <style>
         :root { 
             --safe-bottom: env(safe-area-inset-bottom); 
-            /* Added 60px (~15mm) extra clearance */
-            --nav-clearance: calc(60px + var(--safe-bottom));
+            --nav-clearance: calc(70px + var(--safe-bottom));
         }
         #chat-box::-webkit-scrollbar { display: none; }
         #reader { width: 100% !important; border: none !important; }
-        
-        .lifted-container {
-            padding-bottom: var(--nav-clearance);
-        }
-
-        /* Prevent text zooming on focus for mobile */
-        input { font-size: 16px !important; }
+        .lifted-container { padding-bottom: var(--nav-clearance); }
+        .msg-bubble { word-break: break-word; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-[#0b141a] text-gray-200 h-screen flex flex-col overflow-hidden">
 
     <header class="bg-[#202c33] p-4 pt-[calc(1rem+env(safe-area-inset-top))] flex justify-between items-center shadow-md z-10">
         <h1 class="font-bold text-emerald-500 text-xl tracking-tight">AT<span class="text-white">chat</span></h1>
-        <div class="flex items-center gap-2">
-            <span id="status-dot" class="w-2 h-2 rounded-full bg-red-500"></span>
-            <span class="text-[10px] font-bold text-gray-400">P2P MESH</span>
+        <div class="flex items-center gap-2 bg-black/30 px-3 py-1 rounded-full">
+            <div id="status-dot" class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+            <span id="status-text" class="text-[9px] font-bold text-gray-400 uppercase">Connecting...</span>
         </div>
     </header>
 
     <div id="scanner-container" class="hidden fixed inset-0 bg-black z-50 flex flex-col">
         <div id="reader" class="flex-1"></div>
-        <button onclick="stopScanner()" class="p-8 bg-red-600 text-white font-bold text-lg">EXIT CAMERA</button>
+        <button onclick="stopScanner()" class="p-8 bg-red-600 text-white font-bold">CLOSE CAMERA</button>
     </div>
 
     <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
-        <p class="text-center text-gray-600 text-[10px] uppercase tracking-widest">Decentralized & Encrypted</p>
+        <p class="text-center text-gray-600 text-[10px] py-4">Waiting for peers to join the mesh...</p>
     </div>
 
-    <div class="bg-[#202c33] border-t border-gray-800 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+    <div class="bg-[#202c33] border-t border-gray-800 z-20 shadow-2xl">
         <div class="grid grid-cols-2 gap-1 px-3 -mt-9">
-            <button onclick="showMyQR()" class="bg-[#2a3942] text-emerald-400 p-2 rounded-t-lg text-[10px] font-bold border-b-2 border-emerald-500">SHOW MY QR</button>
+            <button onclick="showMyQR()" class="bg-[#2a3942] text-emerald-400 p-2 rounded-t-lg text-[10px] font-bold border-b-2 border-emerald-500">MY IDENTITY</button>
             <button onclick="startScanner()" class="bg-[#2a3942] text-blue-400 p-2 rounded-t-lg text-[10px] font-bold border-b-2 border-blue-500">SCAN FRIEND</button>
         </div>
 
         <div class="p-3 lifted-container">
-            <input id="peer-key" type="text" placeholder="Friend's Key (Scan QR to fill)" 
-                   class="w-full bg-[#111b21] p-2 text-[10px] rounded mb-3 border border-gray-700 text-emerald-400 outline-none">
+            <input id="peer-key" type="text" placeholder="Scan friend's QR to start..." 
+                   class="w-full bg-[#111b21] p-3 text-[10px] rounded mb-3 border border-gray-700 text-emerald-400 outline-none">
             
             <div class="flex gap-2 items-center">
                 <input id="msg-input" type="text" placeholder="Type message..." 
-                       class="flex-1 bg-[#2a3942] p-4 rounded-2xl border-none outline-none text-white shadow-inner">
-                <button onclick="sendMessage()" class="bg-emerald-600 w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                       class="flex-1 bg-[#2a3942] p-4 rounded-2xl border-none outline-none text-white shadow-inner focus:ring-1 focus:ring-emerald-500">
+                <button onclick="sendMessage()" class="bg-emerald-600 w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-90">
                     <svg viewBox="0 0 24 24" class="w-7 h-7 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                 </button>
             </div>
@@ -65,18 +60,24 @@
     </div>
 
     <div id="qr-modal" class="hidden fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-6" onclick="this.classList.add('hidden')">
-        <div class="bg-white p-6 rounded-3xl shadow-2xl">
-            <div id="qrcode"></div>
-        </div>
-        <p class="text-white text-center mt-6 font-bold uppercase tracking-widest">Share this with your friend</p>
+        <div class="bg-white p-6 rounded-3xl shadow-2xl"><div id="qrcode"></div></div>
+        <p class="text-white text-center mt-6 font-bold uppercase tracking-widest text-xs">Scan this on Friend's Phone</p>
     </div>
 
-    <div id="my-key-display" class="hidden">Generating...</div>
+    <div id="my-key-display" class="hidden"></div>
 
     <script>
-        // Initialize Gun.js with high-availability relays
-        const gun = Gun(['https://gun-manhattan.herokuapp.com/gun', 'https://liberated-network.onrender.com/gun']);
-        const chatRoom = gun.get('atchat_mesh_secure_v2'); 
+        // Multi-relay support to ensure connection
+        const relays = [
+            'https://gun-manhattan.herokuapp.com/gun',
+            'https://peer.wall.org/gun',
+            'https://gun-us.herokuapp.com/gun'
+        ];
+        
+        const gun = Gun({ peers: relays, localStorage: false });
+        // Using a more specific "Room ID" based on today's date so the mesh isn't cluttered
+        const roomID = 'atchat_v3_' + new Date().toISOString().slice(0, 10);
+        const mesh = gun.get(roomID);
 
         let myKeyPair, html5QrCode;
 
@@ -85,12 +86,17 @@
                 myKeyPair = await window.crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]);
                 const pub = await window.crypto.subtle.exportKey("jwk", myKeyPair.publicKey);
                 document.getElementById('my-key-display').innerText = JSON.stringify(pub);
-                document.getElementById('status-dot').classList.replace('bg-red-500', 'bg-emerald-500');
                 
-                chatRoom.map().once((data) => {
-                    if (data && data.content) decryptAndShow(data);
+                // Visual connection check
+                gun.on('hi', peer => {
+                    document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-emerald-500";
+                    document.getElementById('status-text').innerText = "Online";
                 });
-            } catch(e) { console.error("Identity failed", e); }
+
+                mesh.map().on((data, id) => {
+                    if (data && data.content) decryptAndShow(data, id);
+                });
+            } catch(e) { console.error(e); }
         }
 
         async function getSecret(peerJWK) {
@@ -108,39 +114,37 @@
                 const iv = window.crypto.getRandomValues(new Uint8Array(12));
                 const enc = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv }, secret, new TextEncoder().encode(input.value));
                 
-                chatRoom.set({
+                mesh.set({
                     content: btoa(String.fromCharCode(...new Uint8Array(enc))),
                     iv: btoa(String.fromCharCode(...iv)),
                     sender: document.getElementById('my-key-display').innerText,
-                    time: Date.now()
+                    stamp: Date.now()
                 });
                 input.value = "";
-            } catch(e) { alert("Key Error: Ensure the friend's key is valid."); }
+            } catch(e) { alert("Handshake Error: Ensure QR was scanned correctly."); }
         }
 
-        async function decryptAndShow(msg) {
+        const seenMessages = new Set();
+        async function decryptAndShow(msg, id) {
+            if (seenMessages.has(id)) return;
             try {
-                const senderPub = JSON.parse(msg.sender);
-                const secret = await getSecret(senderPub);
+                const secret = await getSecret(JSON.parse(msg.sender));
                 const encData = Uint8Array.from(atob(msg.content), c => c.charCodeAt(0));
                 const ivData = Uint8Array.from(atob(msg.iv), c => c.charCodeAt(0));
                 
                 const dec = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: ivData }, secret, encData);
                 const text = new TextDecoder().decode(dec);
                 
+                seenMessages.add(id);
                 const isMe = msg.sender === document.getElementById('my-key-display').innerText;
-                const msgId = msg.time + msg.content.substring(0,10);
-                if (document.getElementById(msgId)) return;
-
                 const div = document.createElement('div');
-                div.id = msgId;
-                div.className = `p-4 rounded-2xl max-w-[85%] text-sm mb-2 shadow-sm ${isMe ? 'bg-emerald-800 self-end rounded-tr-none text-white' : 'bg-[#202c33] self-start rounded-tl-none text-gray-100'}`;
+                div.className = `msg-bubble p-4 rounded-2xl max-w-[85%] text-sm mb-2 shadow-sm ${isMe ? 'bg-emerald-800 self-end rounded-tr-none text-white' : 'bg-[#202c33] self-start rounded-tl-none text-gray-100'}`;
                 div.innerText = text;
                 
-                const chatBox = document.getElementById('chat-box');
-                chatBox.appendChild(div);
-                chatBox.scrollTop = chatBox.scrollHeight;
-            } catch(e) { }
+                const box = document.getElementById('chat-box');
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight;
+            } catch(e) { /* Not for us */ }
         }
 
         function showMyQR() {
@@ -154,7 +158,6 @@
             html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 280 }, (txt) => {
                 document.getElementById('peer-key').value = txt;
-                document.getElementById('peer-key').style.borderColor = "#10b981";
                 stopScanner();
             }).catch(() => document.getElementById('scanner-container').classList.add('hidden'));
         }
