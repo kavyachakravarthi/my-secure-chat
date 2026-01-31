@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-    <title>ATchat | Secure Messenger</title>
+    <title>ATchat | Secure</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,95 +11,108 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --safe-bottom: env(safe-area-inset-bottom); }
-        body { background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%); }
+        body { background-color: #000000; color: #e2e8f0; }
+        
         #chat-box::-webkit-scrollbar { display: none; }
         
-        /* Floating Bubble Style */
+        /* Premium Dark Bubbles */
         .bubble { 
             position: relative;
-            max-width: 75%;
-            padding: 12px 16px;
-            border-radius: 20px;
+            max-width: 80%;
+            padding: 14px 18px;
+            border-radius: 22px;
             font-size: 15px;
             line-height: 1.4;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            animation: slideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.2);
         }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Glassmorphism Input Area */
         .glass-input {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(0, 102, 255, 0.1);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
             padding-bottom: calc(20px + var(--safe-bottom));
         }
 
         /* Kiss Animation */
         .kiss-emoji {
             position: absolute;
-            font-size: 40px;
+            font-size: 50px;
             pointer-events: none;
-            animation: floatKiss 2s forwards;
+            animation: floatKiss 2s ease-out forwards;
             z-index: 100;
         }
         @keyframes floatKiss {
             0% { transform: translateY(0) scale(0); opacity: 0; }
-            20% { opacity: 1; transform: translateY(-20px) scale(1.2); }
-            100% { transform: translateY(-100px) scale(1); opacity: 0; }
+            20% { opacity: 1; transform: translateY(-30px) scale(1.3); }
+            100% { transform: translateY(-120px) scale(1); opacity: 0; }
+        }
+
+        .logo-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden text-slate-800">
+<body class="h-screen flex flex-col overflow-hidden">
 
-    <header class="bg-white/70 backdrop-blur-md px-6 py-4 pt-[calc(1.2rem+env(safe-area-inset-top))] flex justify-between items-center z-30">
-        <div>
-            <h1 class="font-black text-2xl tracking-tighter text-blue-600">AT<span class="text-slate-400">chat</span></h1>
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">E2EE Protected</p>
+    <header class="bg-black/50 px-6 py-4 pt-[calc(1.5rem+env(safe-area-inset-top))] flex justify-between items-center z-30 border-b border-white/5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/40">
+                <svg viewBox="0 0 24 24" class="w-6 h-6 fill-white">
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-black text-xl tracking-tighter leading-none">AT<span class="text-blue-500">chat</span></h1>
+                <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Permanent Link Active</span>
+            </div>
         </div>
-        <div class="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full">
-            <div id="status-dot" class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-            <span class="text-[10px] font-bold text-blue-600 uppercase">Online</span>
+        <div class="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+            <div id="status-dot" class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]"></div>
+            <span class="text-[10px] font-bold text-blue-400 uppercase">Encrypted</span>
         </div>
     </header>
 
-    <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col">
-        </div>
-
-    <div class="flex gap-2 px-6 -mb-5 z-40">
-        <button onclick="showMyQR()" class="flex-1 bg-white border border-blue-100 text-blue-600 py-3 rounded-2xl text-[11px] font-bold uppercase shadow-sm active:scale-95 transition-all">Identity</button>
-        <button onclick="startScanner()" class="flex-1 bg-blue-600 text-white py-3 rounded-2xl text-[11px] font-bold uppercase shadow-lg shadow-blue-200 active:scale-95 transition-all">Scan Peer</button>
+    <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col bg-[#000000]">
+        <p class="text-center text-gray-600 text-[10px] uppercase font-bold tracking-widest opacity-50">End-to-End Encrypted Tunnel</p>
     </div>
 
-    <div class="glass-input px-6 pt-10">
-        <div class="flex items-center gap-2 mb-4 bg-slate-100/50 p-1.5 rounded-xl border border-slate-200">
-            <span class="pl-2 text-[10px] font-bold text-slate-400 uppercase">To:</span>
-            <input id="peer-id" type="text" placeholder="Recipient ID" 
-                   class="flex-1 bg-transparent py-1 text-xs font-mono text-blue-600 outline-none">
-            <button onclick="pasteFromClipboard()" class="text-[10px] bg-white px-3 py-1 rounded-lg font-bold shadow-sm">PASTE</button>
+    <div class="px-6 -mb-4 z-40 flex gap-2">
+        <button onclick="showMyQR()" class="flex-1 bg-zinc-900 text-blue-400 py-3.5 rounded-2xl text-[10px] font-bold uppercase border border-white/5 active:scale-95 transition-all">My ID</button>
+        <button onclick="startScanner()" class="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl text-[10px] font-bold uppercase shadow-xl active:scale-95 transition-all">Scan Peer</button>
+    </div>
+
+    <div class="glass-input px-6 pt-8">
+        <div class="flex items-center gap-2 mb-4 bg-white/5 p-1 rounded-xl border border-white/10">
+            <span class="pl-2 text-[10px] font-bold text-gray-500 uppercase">Chatting with:</span>
+            <input id="peer-id" type="text" oninput="savePeer(this.value)" placeholder="Enter Friend's ID..." 
+                   class="flex-1 bg-transparent py-2 text-xs font-mono text-blue-400 outline-none">
+            <button onclick="clearPeer()" class="text-[9px] bg-red-900/30 text-red-400 px-2 py-1 rounded font-bold mr-1">RESET</button>
         </div>
         
         <div class="flex gap-3 items-center">
-            <div class="flex-1 bg-white rounded-3xl shadow-inner border border-slate-200 px-5 flex items-center">
-                <input id="msg-input" type="text" placeholder="Type a message..." 
-                       class="w-full py-4 bg-transparent outline-none text-slate-700">
+            <div class="flex-1 bg-white/5 rounded-2xl border border-white/10 px-4 flex items-center">
+                <input id="msg-input" type="text" placeholder="Send message..." 
+                       class="w-full py-4 bg-transparent outline-none text-white text-lg">
             </div>
-            <button onclick="sendMessage()" class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-200 active:rotate-12 transition-all">
-                <svg viewBox="0 0 24 24" class="w-6 h-6 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            <button onclick="sendMessage()" class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-all">
+                <svg viewBox="0 0 24 24" class="w-7 h-7 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
         </div>
     </div>
 
-    <div id="scanner-container" class="hidden fixed inset-0 bg-white z-50 flex flex-col">
+    <div id="scanner-container" class="hidden fixed inset-0 bg-black z-50 flex flex-col">
         <div id="reader" class="flex-1"></div>
-        <button onclick="stopScanner()" class="p-8 bg-slate-900 text-white font-bold">CLOSE CAMERA</button>
+        <button onclick="stopScanner()" class="p-8 bg-zinc-900 text-white font-bold">CLOSE CAMERA</button>
     </div>
 
-    <div id="qr-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6" onclick="this.classList.add('hidden')">
-        <div class="bg-white p-8 rounded-[40px] shadow-2xl scale-up"><div id="qrcode"></div></div>
+    <div id="qr-modal" class="hidden fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-6" onclick="this.classList.add('hidden')">
+        <div class="bg-white p-6 rounded-[32px]"><div id="qrcode"></div></div>
         <div class="mt-8 flex flex-col gap-3 w-full max-w-xs">
-            <button onclick="copyMyID(event)" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg">COPY MY UNIQUE ID</button>
-            <p class="text-white/70 text-center text-[10px] font-bold uppercase tracking-widest">Tap anywhere to close</p>
+            <button onclick="copyMyID(event)" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg">COPY MY ID</button>
         </div>
     </div>
 
@@ -120,11 +133,17 @@
         let myKeys, myID;
 
         async function init() {
-            // Request Notification Permission
             if ("Notification" in window) Notification.requestPermission();
 
+            // Identity
             myID = localStorage.getItem('atchat_id') || Math.random().toString(36).substring(2, 10).toUpperCase();
             localStorage.setItem('atchat_id', myID);
+
+            // PERMANENT CONNECTION LOGIC
+            const savedPeer = localStorage.getItem('atchat_permanent_peer');
+            if (savedPeer) {
+                document.getElementById('peer-id').value = savedPeer;
+            }
 
             myKeys = await window.crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]);
             const pubJWK = await window.crypto.subtle.exportKey("jwk", myKeys.publicKey);
@@ -133,6 +152,15 @@
             db.ref('inbox/' + myID).on('child_added', snap => {
                 decryptAndShow(snap.val());
             });
+        }
+
+        function savePeer(val) {
+            localStorage.setItem('atchat_permanent_peer', val.toUpperCase());
+        }
+
+        function clearPeer() {
+            localStorage.removeItem('atchat_permanent_peer');
+            document.getElementById('peer-id').value = "";
         }
 
         async function sendMessage() {
@@ -170,47 +198,41 @@
                 addBubble(text, false);
                 if (text.toLowerCase().includes('kiss')) triggerKiss();
                 
-                // Trigger Browser Notification
                 if (Notification.permission === "granted") {
-                    new Notification("ATchat", { body: "New Secure Message Received", icon: "https://cdn-icons-png.flaticon.com/512/733/733585.png" });
+                    new Notification("ATchat", { body: "New Secure Message Received" });
                 }
-            } catch(e) { console.error("E2EE Error"); }
+            } catch(e) {}
         }
 
         function addBubble(text, isMe) {
             const div = document.createElement('div');
-            div.className = `bubble ${isMe ? 'bg-blue-600 text-white self-end rounded-tr-none' : 'bg-white text-slate-700 self-start rounded-tl-none border border-slate-100'}`;
+            div.className = `bubble ${isMe ? 'bg-blue-600 text-white self-end rounded-tr-none' : 'bg-zinc-800 text-gray-100 self-start rounded-tl-none border border-white/5'}`;
             div.innerText = text;
             const box = document.getElementById('chat-box');
             box.appendChild(div);
-            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+            box.scrollTop = box.scrollHeight;
         }
 
         function triggerKiss() {
             const kiss = document.createElement('div');
             kiss.className = 'kiss-emoji';
             kiss.innerText = '🥰';
-            kiss.style.left = Math.random() * 80 + '%';
-            kiss.style.top = '70%';
+            kiss.style.left = Math.random() * 70 + 15 + '%';
+            kiss.style.top = '60%';
             document.body.appendChild(kiss);
             setTimeout(() => kiss.remove(), 2000);
         }
 
         function showMyQR() {
             document.getElementById('qrcode').innerHTML = "";
-            new QRCode(document.getElementById("qrcode"), { text: myID, width: 220, height: 220, colorDark: "#2563eb" });
+            new QRCode(document.getElementById("qrcode"), { text: myID, width: 220, height: 220 });
             document.getElementById('qr-modal').classList.remove('hidden');
         }
 
         function copyMyID(e) {
             e.stopPropagation();
             navigator.clipboard.writeText(myID);
-            alert("ID Copied to Clipboard!");
-        }
-
-        async function pasteFromClipboard() {
-            const txt = await navigator.clipboard.readText();
-            document.getElementById('peer-id').value = txt;
+            alert("ID Copied!");
         }
 
         function startScanner() {
@@ -218,6 +240,7 @@
             const scanner = new Html5Qrcode("reader");
             scanner.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (txt) => {
                 document.getElementById('peer-id').value = txt;
+                savePeer(txt);
                 scanner.stop();
                 document.getElementById('scanner-container').classList.add('hidden');
             });
