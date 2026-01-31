@@ -10,14 +10,9 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// This runs when a notification hits your phone while the app is CLOSED
 messaging.onBackgroundMessage((payload) => {
-    const notificationTitle = 'ATchat - New Message';
-    const notificationOptions = {
-        body: 'You have a new secure message.',
-        icon: 'https://cdn-icons-png.flaticon.com/512/733/733585.png',
-        badge: 'https://cdn-icons-png.flaticon.com/512/733/733585.png',
-        tag: 'new-msg' // Prevents multiple notification stacks
-    };
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    self.registration.showNotification('ATchat', {
+        body: 'New secure message received.',
+        icon: 'https://cdn-icons-png.flaticon.com/512/733/733585.png'
+    });
 });
