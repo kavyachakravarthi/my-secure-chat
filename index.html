@@ -3,21 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>ATchat Pro</title>
+    <title>ATchat Pro | Secure</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root { --safe-bottom: env(safe-area-inset-bottom); }
         body { background: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        .bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; font-size: 15px; }
         #chat-box::-webkit-scrollbar { display: none; }
         .glass-panel { background: rgba(10, 10, 10, 0.98); backdrop-filter: blur(20px); border-top: 1px solid #222; padding-bottom: calc(15px + var(--safe-bottom)); }
-        input { background: transparent; outline: none; }
+        
+        /* Highlighted Trash Button */
+        .btn-reset { 
+            background: rgba(239, 68, 68, 0.1); 
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+        }
+
+        /* Full Screen Camera Layer */
+        #scanner-layer {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+        }
     </style>
 </head>
 <body>
@@ -25,10 +42,10 @@
     <header class="p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] border-b border-white/10 flex justify-between items-center bg-black/50">
         <div>
             <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">ATchat</h1>
-            <p id="display-user" class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest cursor-pointer" onclick="setUsername()">Set Username</p>
+            <p id="display-user" class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest cursor-pointer" onclick="setUsername()"></p>
         </div>
         <div class="flex gap-3">
-            <button onclick="wipeData()" class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 active:scale-90">
+            <button onclick="wipeData()" class="btn-reset w-10 h-10 rounded-full flex items-center justify-center active:scale-90" title="Wipe All">
                 <svg viewBox="0 0 24 24" class="w-5 h-5 fill-red-500"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
             </button>
             <button onclick="showMyQR()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 active:scale-90">
@@ -42,21 +59,31 @@
     <div class="glass-panel p-4">
         <div class="flex items-center gap-3 mb-4 bg-white/5 p-2 px-4 rounded-xl border border-white/10">
             <span class="text-[10px] text-blue-400 font-bold uppercase">Linked:</span>
-            <input id="peer-id" type="text" oninput="savePeer(this.value)" placeholder="Recipient ID" class="flex-1 text-sm text-white font-bold">
+            <input id="peer-id" type="text" oninput="savePeer(this.value)" placeholder="ID OR SCAN" class="flex-1 text-sm text-white font-bold uppercase outline-none bg-transparent">
+            <button onclick="openScanner()" class="bg-blue-600/20 text-blue-400 p-2 rounded-lg text-[10px] font-bold border border-blue-400/30">CAMERA</button>
         </div>
         
         <div class="flex gap-3 items-center">
             <div class="flex-1 bg-zinc-900 rounded-2xl p-4 border border-white/5">
-                <input id="msg-input" type="text" placeholder="Type message..." class="w-full text-white">
+                <input id="msg-input" type="text" placeholder="Message..." class="w-full text-white bg-transparent outline-none">
             </div>
-            <button onclick="sendMessage()" class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+            <button onclick="sendMessage()" class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-90">
                 <svg viewBox="0 0 24 24" class="w-7 h-7 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
         </div>
     </div>
 
+    <div id="scanner-layer">
+        <div class="p-6 flex justify-between items-center border-b border-white/10">
+            <h2 class="font-bold">Scan Friend ID</h2>
+            <button onclick="closeScanner()" class="text-red-500 font-bold px-4 py-2">CANCEL</button>
+        </div>
+        <div id="reader" class="flex-1"></div>
+        <div class="p-8 text-center text-zinc-500 text-sm">Align QR code within the frame</div>
+    </div>
+
     <div id="qr-modal" class="hidden fixed inset-0 bg-black/98 z-50 flex flex-col items-center justify-center p-8" onclick="this.classList.add('hidden')">
-        <div class="bg-white p-6 rounded-[32px] mb-8"><div id="qrcode"></div></div>
+        <div class="bg-white p-6 rounded-[32px] mb-8 shadow-2xl"><div id="qrcode"></div></div>
         <h2 id="my-name-display" class="text-xl font-bold mb-1"></h2>
         <p id="my-id-display" class="text-zinc-500 text-xs mb-8 font-mono"></p>
         <button onclick="copyMyID(event)" class="w-full max-w-xs py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-xl">COPY MY ID</button>
@@ -73,10 +100,12 @@
         firebase.initializeApp(config);
         const db = firebase.database();
         const messaging = firebase.messaging();
+        let html5QrCode;
 
         let myID = localStorage.getItem('atchat_id') || Math.random().toString(36).substring(2, 9).toUpperCase();
         localStorage.setItem('atchat_id', myID);
 
+        // Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(reg => {
                 messaging.useServiceWorker(reg);
@@ -88,27 +117,46 @@
         async function init() {
             const saved = localStorage.getItem('permanent_peer');
             if(saved) document.getElementById('peer-id').value = saved;
-            
             updateHeader();
-
-            const history = JSON.parse(localStorage.getItem('chat_history_' + myID) || '[]');
-            history.forEach(m => renderBubble(m.text, m.isMe));
-
+            const hist = JSON.parse(localStorage.getItem('chat_history_' + myID) || '[]');
+            hist.forEach(m => renderBubble(m.text, m.isMe));
             db.ref('inbox/' + myID).on('child_added', snap => {
                 const data = snap.val();
-                if(!history.find(h => h.id === snap.key)) {
+                if(!hist.find(h => h.id === snap.key)) {
                     renderBubble(data.msg, false);
                     saveMessage(data.msg, false, snap.key);
                 }
             });
         }
 
-        function setUsername() {
-            const name = prompt("Enter username:");
-            if(name) {
-                localStorage.setItem('atchat_username', name);
-                updateHeader();
+        // Camera Logic
+        function openScanner() {
+            document.getElementById('scanner-layer').style.display = 'flex';
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    document.getElementById('peer-id').value = decodedText;
+                    savePeer(decodedText);
+                    closeScanner();
+                }
+            ).catch(err => alert("Camera error: " + err));
+        }
+
+        function closeScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scanner-layer').style.display = 'none';
+                });
+            } else {
+                document.getElementById('scanner-layer').style.display = 'none';
             }
+        }
+
+        function setUsername() {
+            const name = prompt("Set Username:");
+            if(name) { localStorage.setItem('atchat_username', name); updateHeader(); }
         }
 
         function updateHeader() {
@@ -119,9 +167,8 @@
         }
 
         function wipeData() {
-            if(confirm("Delete all messages and clear connection?")) {
-                localStorage.removeItem('chat_history_' + myID);
-                localStorage.removeItem('permanent_peer');
+            if(confirm("Permanently delete ALL messages and reset ID?")) {
+                localStorage.clear(); // Complete wipe
                 location.reload();
             }
         }
@@ -132,10 +179,8 @@
             const rid = document.getElementById('peer-id').value.trim();
             const msg = document.getElementById('msg-input').value.trim();
             if(!rid || !msg) return;
-
             const ref = db.ref('inbox/' + rid).push();
             ref.set({ msg, sid: myID, t: Date.now() });
-
             renderBubble(msg, true);
             saveMessage(msg, true, ref.key);
             document.getElementById('msg-input').value = "";
@@ -162,7 +207,7 @@
             document.getElementById('qr-modal').classList.remove('hidden');
         }
 
-        function copyMyID(e) { e.stopPropagation(); navigator.clipboard.writeText(myID); alert("ID Copied!"); }
+        function copyMyID(e) { e.stopPropagation(); navigator.clipboard.writeText(myID); alert("Copied!"); }
 
         window.onload = init;
     </script>
