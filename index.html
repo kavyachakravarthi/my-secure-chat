@@ -18,15 +18,17 @@
         .glass-input { background: rgba(10,10,10,0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(1rem + var(--safe-bottom)); }
         
         #chat-box::-webkit-scrollbar { display: none; }
-        .bubble { max-width: 85%; padding: 14px 18px; border-radius: 24px; font-size: 15px; line-height: 1.5; }
+        .bubble { max-width: 85%; padding: 14px 18px; border-radius: 24px; font-size: 15px; position: relative; transition: opacity 0.5s ease; }
         .bubble-me { background: linear-gradient(135deg, #7c3aed, #db2777); align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 8px 20px -5px rgba(124, 58, 237, 0.4); }
         .bubble-them { background: #1a1a1a; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
 
-        #lock-screen { position: absolute; inset: 0; background: #000; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.5s ease; }
+        .timer-bar { position: absolute; bottom: 4px; left: 18px; right: 18px; height: 2px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+        .timer-progress { height: 100%; background: #fff; width: 100%; animation: shrink 30s linear forwards; }
+        @keyframes shrink { from { width: 100%; } to { width: 0%; } }
+
+        #lock-screen { position: absolute; inset: 0; background: #000; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .fx-element { position: absolute; font-size: 65px; pointer-events: none; animation: floatUp 3s ease-out forwards; z-index: 100; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(0.4); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-450px) scale(2); opacity: 0; } }
-
-        .btn-danger { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); }
     </style>
 </head>
 <body>
@@ -37,7 +39,7 @@
             <p id="display-user" class="text-[9px] text-zinc-500 font-bold tracking-widest uppercase mt-1 cursor-pointer" onclick="setUsername()"></p>
         </div>
         <div class="flex gap-3">
-            <button onclick="wipeData()" class="btn-danger w-10 h-10 rounded-full flex items-center justify-center active:scale-90 transition-all">
+            <button onclick="requestWipe()" class="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center active:scale-90 transition-all">
                 <svg viewBox="0 0 24 24" class="w-5 h-5 fill-red-500"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
             </button>
             <button onclick="showMyQR()" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
@@ -51,35 +53,39 @@
             <div class="w-20 h-20 bg-fuchsia-600/10 rounded-full flex items-center justify-center mb-8 ring-1 ring-fuchsia-500/30">
                 <svg viewBox="0 0 24 24" class="w-10 h-10 fill-fuchsia-500"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
             </div>
-            <p class="text-[10px] text-zinc-500 uppercase tracking-[0.4em] mb-8">Access Restricted</p>
-            
             <div class="flex flex-col items-center gap-6 w-full px-10">
-                <input id="unlock-input" type="password" placeholder="Enter Secret Key" 
-                       class="bg-zinc-900/50 text-center text-white text-lg font-bold outline-none border border-white/10 rounded-2xl py-4 w-full focus:border-fuchsia-500/50 transition-all shadow-inner">
-                
-                <button onclick="manualUnlock()" class="bg-fuchsia-600 w-full py-4 rounded-2xl font-bold text-xs tracking-widest uppercase transition-all active:scale-95 shadow-lg shadow-fuchsia-900/30">
-                    Open Vault
-                </button>
+                <input id="unlock-input" type="password" placeholder="Enter Secret Key" class="bg-zinc-900/50 text-center text-white text-lg font-bold outline-none border border-white/10 rounded-2xl py-4 w-full focus:border-fuchsia-500/50 transition-all shadow-inner">
+                <button onclick="manualUnlock()" class="bg-fuchsia-600 w-full py-4 rounded-2xl font-bold text-xs tracking-widest uppercase transition-all active:scale-95 shadow-lg shadow-fuchsia-900/30">Open Vault</button>
             </div>
         </div>
         
-        <div id="chat-box" class="h-full overflow-y-auto p-5 space-y-6 flex flex-col"></div>
+        <div id="chat-box" class="h-full overflow-y-auto p-5 space-y-6 flex flex-col pb-10"></div>
     </main>
 
+    <div id="reset-modal" class="hidden fixed inset-0 bg-black/90 z-[200] flex items-center justify-center p-6 backdrop-blur-md">
+        <div class="bg-zinc-900 border border-red-500/30 p-8 rounded-[32px] w-full max-w-sm text-center">
+            <h3 class="text-xl font-bold mb-2">Destruction Request</h3>
+            <p class="text-zinc-400 text-xs mb-8">Your partner is requesting to wipe the vault. This cannot be undone.</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="executeMutualWipe()" class="bg-red-600 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest">Wipe Everything</button>
+                <button onclick="cancelWipe()" class="text-zinc-500 text-[10px] font-bold uppercase mt-2">Decline</button>
+            </div>
+        </div>
+    </div>
+
     <div class="glass-input p-4">
-        <div class="flex gap-2 mb-4 bg-white/5 rounded-2xl p-2 border border-white/5">
+        <div class="flex gap-2 mb-4 bg-white/5 rounded-2xl p-2 border border-white/5 items-center">
             <div class="px-3 border-r border-white/10">
-                <span class="text-[8px] text-zinc-500 block">SEND TO</span>
+                <span class="text-[8px] text-zinc-500 block uppercase">Partner</span>
                 <input id="peer-id" type="number" oninput="savePeer(this.value)" placeholder="ID" class="w-10 bg-transparent text-white font-bold outline-none text-xs">
             </div>
             <div class="px-3 flex-1 flex items-center justify-between">
-                <span class="text-[8px] text-zinc-500 block uppercase">Encryption Status</span>
+                <span class="text-[8px] text-fuchsia-500 font-bold uppercase">Self-Destruct: 30s</span>
                 <div id="status-dot" class="w-2 h-2 rounded-full bg-zinc-600"></div>
             </div>
         </div>
-        
         <div class="flex gap-3 items-center">
-            <input id="msg-input" type="text" placeholder="Scrambled message..." class="flex-1 bg-white/5 rounded-2xl p-4 outline-none border border-white/10 text-white transition-all">
+            <input id="msg-input" type="text" placeholder="Encrypted message..." class="flex-1 bg-white/5 rounded-2xl p-4 outline-none border border-white/10 text-white transition-all">
             <button onclick="sendMessage()" class="bg-white text-black w-14 h-14 rounded-2xl flex items-center justify-center active:scale-90 transition-all">
                 <svg viewBox="0 0 24 24" class="w-7 h-7 fill-black"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
@@ -89,7 +95,7 @@
     <div id="qr-modal" class="hidden fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center p-8" onclick="this.classList.add('hidden')">
         <div class="bg-white p-6 rounded-[40px] mb-8"><div id="qrcode"></div></div>
         <p id="my-id-display" class="text-white text-5xl font-bold italic"></p>
-        <button onclick="copyMyID(event)" class="mt-12 px-12 py-4 bg-white text-black rounded-2xl font-bold uppercase text-[10px] tracking-widest">Copy My Identifier</button>
+        <button onclick="copyMyID(event)" class="mt-12 px-12 py-4 bg-white text-black rounded-2xl font-bold uppercase text-[10px] tracking-widest">Copy Identifier</button>
     </div>
 
     <script>
@@ -104,20 +110,26 @@
         const db = firebase.database();
 
         let currentKey = "";
-        let myID = localStorage.getItem('v3_id') || Math.floor(1000 + Math.random() * 9000).toString();
-        localStorage.setItem('v3_id', myID);
+        let myID = localStorage.getItem('v4_id') || Math.floor(1000 + Math.random() * 9000).toString();
+        localStorage.setItem('v4_id', myID);
 
         function init() {
-            document.getElementById('peer-id').value = localStorage.getItem('v3_peer') || "";
+            document.getElementById('peer-id').value = localStorage.getItem('v4_peer') || "";
             updateHeader();
-
+            
+            // Listen for Messages
             db.ref('inbox/' + myID).on('child_added', snap => {
                 const data = snap.val();
-                saveBlob(data.msg, false, snap.key);
-                if(currentKey) tryDecryptAndRender(data.msg, false);
+                if(currentKey) tryDecryptAndRender(data.msg, false, snap.key);
+                else saveBlob(data.msg, false, snap.key);
             });
 
-            // Enter key support for unlock
+            // Listen for Wipe Signals
+            db.ref('resets/' + myID).on('value', snap => {
+                if(snap.val() === 'request') document.getElementById('reset-modal').classList.remove('hidden');
+                if(snap.val() === 'go') finishWipe();
+            });
+
             document.getElementById('unlock-input').addEventListener("keyup", (e) => { if(e.key === "Enter") manualUnlock(); });
         }
 
@@ -125,10 +137,7 @@
             const val = document.getElementById('unlock-input').value;
             if(!val) return;
             currentKey = val;
-            
-            document.getElementById('lock-screen').style.transform = "scale(1.1)";
             document.getElementById('lock-screen').style.opacity = "0";
-            
             setTimeout(() => {
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('status-dot').classList.replace('bg-zinc-600', 'bg-fuchsia-500');
@@ -137,18 +146,29 @@
         }
 
         function renderFromHistory() {
-            document.getElementById('chat-box').innerHTML = "";
-            const hist = JSON.parse(localStorage.getItem('v3_hist_' + myID) || '[]');
-            hist.forEach(m => tryDecryptAndRender(m.blob, m.isMe));
+            const hist = JSON.parse(localStorage.getItem('v4_hist_' + myID) || '[]');
+            hist.forEach(m => tryDecryptAndRender(m.blob, m.isMe, m.id));
         }
 
-        function tryDecryptAndRender(blob, isMe) {
+        function tryDecryptAndRender(blob, isMe, msgId) {
             try {
                 const bytes = CryptoJS.AES.decrypt(blob, currentKey);
                 const text = bytes.toString(CryptoJS.enc.Utf8);
                 if(text) {
-                    renderBubble(text, isMe);
+                    const bubbleId = 'msg-' + msgId;
+                    if(document.getElementById(bubbleId)) return;
+                    
+                    renderBubble(text, isMe, bubbleId);
                     if(!isMe) triggerSensoryFX(text);
+                    
+                    // Self-Destruct Timer (30s)
+                    setTimeout(() => {
+                        const el = document.getElementById(bubbleId);
+                        if(el) {
+                            el.style.opacity = '0';
+                            setTimeout(() => el.remove(), 500);
+                        }
+                    }, 30000);
                 }
             } catch(e) {}
         }
@@ -159,28 +179,56 @@
             if(!rid || !currentKey || !msg) return;
 
             const encrypted = CryptoJS.AES.encrypt(msg, currentKey).toString();
+            const msgId = Date.now();
             db.ref('inbox/' + rid).push({ msg: encrypted, sid: myID });
-
-            renderBubble(msg, true);
-            saveBlob(encrypted, true, Date.now());
-            triggerSensoryFX(msg);
+            
+            tryDecryptAndRender(encrypted, true, msgId);
+            saveBlob(encrypted, true, msgId);
             document.getElementById('msg-input').value = "";
         }
 
-        function renderBubble(text, isMe) {
+        function renderBubble(text, isMe, id) {
             const d = document.createElement('div');
+            d.id = id;
             d.className = `bubble ${isMe ? 'bubble-me' : 'bubble-them'}`;
-            d.innerText = text;
+            d.innerHTML = `<div>${text}</div><div class="timer-bar"><div class="timer-progress"></div></div>`;
             const box = document.getElementById('chat-box');
             box.appendChild(d);
             box.scrollTop = box.scrollHeight;
         }
 
+        // Mutual Wipe Logic
+        function requestWipe() {
+            const rid = document.getElementById('peer-id').value;
+            if(!rid) return alert("Partner ID needed to sync wipe.");
+            db.ref('resets/' + rid).set('request');
+            alert("Waiting for partner to accept...");
+        }
+
+        function executeMutualWipe() {
+            const rid = document.getElementById('peer-id').value;
+            db.ref('resets/' + rid).set('go'); // Tell partner to go
+            db.ref('resets/' + myID).remove();
+            finishWipe();
+        }
+
+        function finishWipe() {
+            db.ref('inbox/' + myID).remove();
+            localStorage.clear();
+            alert("Vault Destroyed.");
+            location.reload();
+        }
+
+        function cancelWipe() { 
+            db.ref('resets/' + myID).remove();
+            document.getElementById('reset-modal').classList.add('hidden');
+        }
+
         function saveBlob(blob, isMe, id) {
-            const hist = JSON.parse(localStorage.getItem('v3_hist_' + myID) || '[]');
+            const hist = JSON.parse(localStorage.getItem('v4_hist_' + myID) || '[]');
             if(!hist.find(x => x.id === id)) {
                 hist.push({blob, isMe, id});
-                localStorage.setItem('v3_hist_' + myID, JSON.stringify(hist));
+                localStorage.setItem('v4_hist_' + myID, JSON.stringify(hist));
             }
         }
 
@@ -197,14 +245,13 @@
             }
         }
 
-        function savePeer(v) { localStorage.setItem('v3_peer', v); }
-        function setUsername() { const n = prompt("Set Alias:"); if(n) { localStorage.setItem('v3_name', n); updateHeader(); } }
+        function savePeer(v) { localStorage.setItem('v4_peer', v); }
+        function setUsername() { const n = prompt("Alias:"); if(n) { localStorage.setItem('v4_name', n); updateHeader(); } }
         function updateHeader() { 
-            const n = localStorage.getItem('v3_name') || "Ghost"; 
+            const n = localStorage.getItem('v4_name') || "Ghost"; 
             document.getElementById('display-user').innerText = `${n} • ID ${myID}`;
             document.getElementById('my-id-display').innerText = myID;
         }
-        function wipeData() { if(confirm("Clear Vault & Reset Identity?")) { localStorage.clear(); location.reload(); } }
         function showMyQR() {
             document.getElementById('qrcode').innerHTML = "";
             new QRCode(document.getElementById("qrcode"), { text: myID, width: 220, height: 220 });
