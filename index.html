@@ -2,65 +2,66 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ATchat - Secure Messenger</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        #chat-box { scroll-behavior: smooth; }
+        :root {
+            --safe-area-bottom: env(safe-area-inset-bottom);
+        }
         #chat-box::-webkit-scrollbar { display: none; }
         #reader { width: 100% !important; border: none !important; }
+        
+        /* Lift the input area above mobile nav bars */
+        .mobile-input-container {
+            padding-bottom: calc(1rem + var(--safe-area-bottom));
+        }
+        
+        /* Ensure the chat box accounts for the lifted input */
+        #chat-box {
+            padding-bottom: 20px;
+        }
     </style>
 </head>
 <body class="bg-[#0b141a] text-gray-200 h-screen flex flex-col overflow-hidden font-sans">
 
-    <header class="bg-[#202c33] p-4 flex justify-between items-center shadow-md z-10 border-b border-emerald-900/30">
+    <header class="bg-[#202c33] p-4 pt-[calc(1rem+env(safe-area-inset-top))] flex justify-between items-center shadow-md z-10 border-b border-emerald-900/30">
         <h1 class="font-bold text-emerald-500 text-xl tracking-tight">
             <span class="text-white">AT</span>chat
         </h1>
-        <button onclick="requestNotifications()" class="text-[10px] bg-emerald-700 px-3 py-1 rounded-full uppercase font-bold">
-            Enable Alerts
-        </button>
+        <button onclick="requestNotifications()" class="text-[10px] bg-emerald-700 px-3 py-1 rounded-full uppercase font-bold">Alerts</button>
     </header>
 
     <div id="scanner-container" class="hidden fixed inset-0 bg-black z-50 flex flex-col">
         <div id="reader" class="flex-1"></div>
-        <button onclick="stopScanner()" class="p-6 bg-red-600 text-white font-bold text-lg">CANCEL SCAN</button>
+        <button onclick="stopScanner()" class="p-8 bg-red-600 text-white font-bold text-lg">CANCEL SCAN</button>
     </div>
 
     <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
-        <div class="text-center bg-[#182229] p-2 rounded-lg border border-gray-800">
-            <p class="text-gray-400 text-[10px] uppercase font-bold">End-to-End Encrypted</p>
-            <p class="text-gray-500 text-[10px]">Messages are only stored as encrypted blobs.</p>
+        <p class="text-center text-gray-500 text-[10px] italic">End-to-End Encrypted Session</p>
+    </div>
+
+    <div class="bg-[#202c33] border-t border-gray-800 shadow-2xl z-20">
+        <div class="grid grid-cols-2 gap-1 px-3 -mt-8">
+            <button onclick="showMyQR()" class="bg-[#2a3942] text-emerald-400 p-2 rounded-t-lg text-[10px] font-bold border-b-2 border-emerald-500 shadow-lg">MY QR CODE</button>
+            <button onclick="startScanner()" class="bg-[#2a3942] text-blue-400 p-2 rounded-t-lg text-[10px] font-bold border-b-2 border-blue-500 shadow-lg">SCAN FRIEND</button>
         </div>
-    </div>
 
-    <div class="grid grid-cols-2 gap-1 px-3 bg-[#0b141a]">
-        <button onclick="showMyQR()" class="bg-[#202c33] text-emerald-400 p-2 rounded-t text-[10px] font-bold border-b-2 border-emerald-500">
-            MY QR CODE
-        </button>
-        <button onclick="startScanner()" class="bg-[#202c33] text-blue-400 p-2 rounded-t text-[10px] font-bold border-b-2 border-blue-500">
-            SCAN FRIEND
-        </button>
-    </div>
-
-    <div class="bg-[#202c33] p-3 border-t border-gray-800 shadow-2xl">
-        <input id="peer-key" type="text" placeholder="Friend's Key (Scan or Paste)..." 
-               class="w-full bg-[#2a3942] p-2 text-[10px] rounded mb-2 border-none text-emerald-400 placeholder-gray-500 outline-none">
-        
-        <div class="flex gap-2 items-center">
-            <input id="msg-input" type="text" placeholder="Message" 
-                   class="flex-1 bg-[#2a3942] p-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-emerald-500">
-            <button onclick="sendMessage()" class="bg-emerald-600 w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
-                <svg viewBox="0 0 24 24" class="w-6 h-6 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            </button>
+        <div class="p-3 mobile-input-container">
+            <input id="peer-key" type="text" placeholder="Friend's Key (Auto-fills after scan)..." 
+                   class="w-full bg-[#111b21] p-2 text-[10px] rounded mb-2 border border-gray-700 text-emerald-400 placeholder-gray-500 outline-none">
+            
+            <div class="flex gap-2 items-center">
+                <input id="msg-input" type="text" placeholder="Message" 
+                       class="flex-1 bg-[#2a3942] p-3 rounded-xl border-none outline-none focus:ring-1 focus:ring-emerald-500 text-white">
+                <button onclick="sendMessage()" class="bg-emerald-600 w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all">
+                    <svg viewBox="0 0 24 24" class="w-6 h-6 fill-white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </div>
         </div>
-    </div>
-
-    <div class="bg-black p-4 border-t border-gray-900 hidden">
-        <p id="my-key-display"></p>
     </div>
 
     <div id="qr-modal" class="hidden fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-6" onclick="this.classList.add('hidden')">
@@ -68,58 +69,25 @@
             <div id="qrcode"></div>
         </div>
         <p class="text-white text-center mt-6 font-bold uppercase tracking-widest text-sm">Your ATchat Key</p>
-        <p class="text-gray-400 text-xs mt-2 italic">Tap anywhere to close</p>
+        <p class="text-gray-400 text-xs mt-2">Tap anywhere to close</p>
     </div>
+
+    <div id="my-key-display" class="hidden">Generating...</div>
 
     <script>
         const SB_URL = "https://ukwhmucwyxxrheqcjydc.supabase.co"; 
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrd2htdWN3eXh4cmhlcWNqeWRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4NTkyODgsImV4cCI6MjA4NTQzNTI4OH0.L9WT5VVAUXlfNiDdaPRZEikUHU7IyJPb6bGv2abTWTs";
-        const dbClient = supabase.createClient(SB_URL, SB_KEY);
-        let myKeyPair;
-        let html5QrCode;
+        const db = supabase.createClient(SB_URL, SB_KEY);
+        let myKeyPair, html5QrCode;
 
-        function requestNotifications() {
-            Notification.requestPermission();
-        }
-
-        // --- QR Functions ---
-        function showMyQR() {
-            const myKey = document.getElementById('my-key-display').innerText;
-            if(!myKey || myKey === "Generating...") return alert("Still generating keys...");
-            document.getElementById('qrcode').innerHTML = "";
-            new QRCode(document.getElementById("qrcode"), { text: myKey, width: 200, height: 200 });
-            document.getElementById('qr-modal').classList.remove('hidden');
-        }
-
-        function startScanner() {
-            document.getElementById('scanner-container').classList.remove('hidden');
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
-                document.getElementById('peer-key').value = decodedText;
-                stopScanner();
-            }).catch(err => {
-                alert("Camera access denied");
-                document.getElementById('scanner-container').classList.add('hidden');
-            });
-        }
-
-        function stopScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    document.getElementById('scanner-container').classList.add('hidden');
-                });
-            }
-        }
-
-        // --- Crypto & Logic ---
         async function init() {
             try {
                 myKeyPair = await window.crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]);
                 const pub = await window.crypto.subtle.exportKey("jwk", myKeyPair.publicKey);
                 document.getElementById('my-key-display').innerText = JSON.stringify(pub);
-                loadExistingMessages();
-                listenRealTime();
-            } catch (err) { console.error(err); }
+                loadHistory();
+                subscribe();
+            } catch(e) { console.error("Key init failed", e); }
         }
 
         async function getSecret(peerJWK) {
@@ -135,28 +103,25 @@
                 const secret = await getSecret(JSON.parse(peerKeyStr));
                 const iv = window.crypto.getRandomValues(new Uint8Array(12));
                 const enc = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv }, secret, new TextEncoder().encode(input.value));
-                await dbClient.from('messages').insert([{
+                await db.from('messages').insert([{
                     content: btoa(String.fromCharCode(...new Uint8Array(enc))),
                     iv: btoa(String.fromCharCode(...iv)),
                     sender_pub_key: JSON.parse(document.getElementById('my-key-display').innerText)
                 }]);
                 input.value = "";
-            } catch (e) { alert("Invalid Friend Key"); }
+            } catch(e) { alert("Encryption Error: Ensure friend's key is valid."); }
         }
 
-        async function loadExistingMessages() {
-            const { data } = await dbClient.from('messages').select('*').order('created_at', { ascending: true });
-            if(data) data.forEach(msg => decryptAndDisplay(msg));
+        async function loadHistory() {
+            const { data } = await db.from('messages').select('*').order('created_at', { ascending: true });
+            if(data) data.forEach(msg => decryptAndShow(msg));
         }
 
-        function listenRealTime() {
-            dbClient.channel('messages').on('postgres_changes', { event: 'INSERT', table: 'messages' }, payload => {
-                decryptAndDisplay(payload.new);
-                if (document.hidden) new Notification("ATchat: New Secure Message");
-            }).subscribe();
+        function subscribe() {
+            db.channel('messages').on('postgres_changes', { event: 'INSERT', table: 'messages' }, p => decryptAndShow(p.new)).subscribe();
         }
 
-        async function decryptAndDisplay(msg) {
+        async function decryptAndShow(msg) {
             try {
                 const secret = await getSecret(msg.sender_pub_key);
                 const encData = Uint8Array.from(atob(msg.content), c => c.charCodeAt(0));
@@ -164,20 +129,51 @@
                 const dec = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: ivData }, secret, encData);
                 const text = new TextDecoder().decode(dec);
                 
-                const myKeyText = document.getElementById('my-key-display').innerText;
-                const isMe = JSON.stringify(msg.sender_pub_key) === myKeyText;
-
+                const isMe = JSON.stringify(msg.sender_pub_key) === document.getElementById('my-key-display').innerText;
                 const div = document.createElement('div');
-                div.className = `p-3 rounded-2xl max-w-[85%] text-sm ${isMe ? 'bg-emerald-800 self-end rounded-tr-none text-white' : 'bg-[#202c33] self-start rounded-tl-none text-gray-100'}`;
+                div.className = `p-3 rounded-2xl max-w-[85%] text-sm shadow-sm mb-2 ${isMe ? 'bg-emerald-800 self-end rounded-tr-none text-white' : 'bg-[#202c33] self-start rounded-tl-none text-gray-100'}`;
                 div.innerText = text;
-                
-                const chatBox = document.getElementById('chat-box');
-                chatBox.appendChild(div);
-                chatBox.scrollTop = chatBox.scrollHeight;
+                document.getElementById('chat-box').appendChild(div);
+                document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
             } catch(e) {}
         }
 
-        init();
+        // --- FIXED QR LOGIC ---
+        function showMyQR() {
+            const keyData = document.getElementById('my-key-display').innerText;
+            document.getElementById('qrcode').innerHTML = "";
+            new QRCode(document.getElementById("qrcode"), { text: keyData, width: 250, height: 250 });
+            document.getElementById('qr-modal').classList.remove('hidden');
+        }
+
+        function startScanner() {
+            document.getElementById('scanner-container').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 15, qrbox: { width: 280, height: 280 } };
+            
+            html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                // Fix: Force the text into the input and trigger a UI update
+                const peerInput = document.getElementById('peer-key');
+                peerInput.value = decodedText;
+                peerInput.classList.add('bg-emerald-900/20'); // Visual confirmation
+                stopScanner();
+            }).catch(err => {
+                console.error(err);
+                alert("Camera Error: Please allow permissions.");
+                document.getElementById('scanner-container').classList.add('hidden');
+            });
+        }
+
+        function stopScanner() { 
+            if(html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scanner-container').classList.add('hidden');
+                }).catch(() => document.getElementById('scanner-container').classList.add('hidden'));
+            }
+        }
+
+        function requestNotifications() { Notification.requestPermission(); }
+        window.onload = init;
     </script>
 </body>
 </html>
