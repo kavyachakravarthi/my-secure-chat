@@ -1,7 +1,7 @@
 {
   "name": "ATchat Secure",
   "short_name": "ATchat",
-  "start_url": "index.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
@@ -9,8 +9,7 @@
     {
       "src": "https://cdn-icons-png.flaticon.com/512/733/733585.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }
